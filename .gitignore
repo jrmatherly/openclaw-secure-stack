@@ -26,5 +26,8 @@ htmlcov/
 # SQLite
 *.db
 
+# Git worktrees
+worktrees/
+
 # OS
 .DS_Store
