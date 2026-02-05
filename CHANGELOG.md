@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-06
+
+### Added
+- **Pre-execution governance layer** — comprehensive security framework for LLM tool execution
+  - Intent classifier — categorizes tool calls (file read/write, network, code execution, system)
+  - Plan generator — creates execution plans with risk assessment
+  - Policy validator — evaluates plans against configurable rules (action, resource, sequence, rate policies)
+  - Approval gate — human-in-the-loop approval for high-risk operations
+  - Execution enforcer — validates tool calls against approved plans with HMAC-signed tokens
+  - Session manager — tracks multi-turn conversations with rate limiting
+  - SQLite-backed storage — persistent plans, approvals, and sessions with WAL mode
+- **Governance configuration** — `config/governance-policies.json` and `config/intent-patterns.json`
+- **214 new tests** — comprehensive coverage for all governance components (389 total tests)
+
+### Security
+- TOCTOU race condition prevention via atomic SQL operations with RETURNING clause
+- HMAC-signed plan tokens with constant-time comparison
+- Atomic compare-and-swap for approval state transitions
+- Session-based rate limiting to prevent abuse
+
 ## [1.0.1] - 2026-02-04
 
 ### Changed

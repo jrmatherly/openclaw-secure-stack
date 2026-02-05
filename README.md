@@ -1,6 +1,6 @@
 # OpenClaw Secure Stack
 
-**Version 1.0.1** | [Changelog](CHANGELOG.md)
+**Version 1.1.0** | [Changelog](CHANGELOG.md)
 
 A hardened deployment wrapper that makes OpenClaw safe to self-host. Wraps an unmodified OpenClaw instance with authentication, skill scanning, prompt injection mitigation, network isolation, and full audit logging — without changing a single line of OpenClaw code.
 
@@ -15,6 +15,7 @@ OpenClaw is a powerful AI agent that can install and run third-party "skills" (J
 | **Unauthorized access** | Anyone on the network can use your OpenClaw instance | Bearer token auth on every request (constant-time comparison) |
 | **Data exfiltration** | Skills phone home to attacker-controlled servers | AST-based scanner flags outbound network calls to non-allowlisted domains |
 | **No audit trail** | You can't tell what happened or when | Every security event logged to append-only JSON Lines |
+| **Uncontrolled tool execution** | LLM executes dangerous tools without approval | Pre-execution governance with policy validation and human-in-the-loop approval |
 
 ## Architecture
 
@@ -152,7 +153,7 @@ All containers run with:
 # Install dependencies
 uv sync
 
-# Run tests (175 tests)
+# Run tests (389 tests)
 uv run pytest tests/ -q
 
 # Lint
@@ -171,6 +172,15 @@ src/
 ├── quarantine/      # SQLite-backed quarantine system
 ├── sanitizer/       # Prompt injection detection
 ├── audit/           # JSON Lines audit logger
+├── governance/      # Pre-execution governance layer
+│   ├── middleware.py    # Orchestrator for all governance components
+│   ├── classifier.py    # Intent classification from tool calls
+│   ├── planner.py       # Execution plan generation
+│   ├── validator.py     # Policy validation engine
+│   ├── approver.py      # Human-in-the-loop approval gate
+│   ├── enforcer.py      # Runtime execution enforcement
+│   ├── session.py       # Multi-turn session management
+│   └── store.py         # Plan storage with HMAC tokens
 └── models.py        # Shared Pydantic data models
 
 config/              # Scanner rules, prompt rules
