@@ -19,8 +19,13 @@ from src.scanner.scanner import (
 class TestLoadRules:
     def test_load_rules_from_config(self):
         config = [
-            {"id": "TEST", "name": "Test Rule", "severity": "high",
-             "patterns": ["badthing"], "description": "test"}
+            {
+                "id": "TEST",
+                "name": "Test Rule",
+                "severity": "high",
+                "patterns": ["badthing"],
+                "description": "test",
+            }
         ]
         rules = load_rules_from_config(config)
         assert len(rules) == 1
@@ -42,8 +47,13 @@ class TestLoadRules:
 class TestSkillScanner:
     def _make_scanner(self) -> SkillScanner:
         config = [
-            {"id": "TEST_PATTERN", "name": "Test", "severity": "high",
-             "patterns": ["eval("], "description": "test pattern"}
+            {
+                "id": "TEST_PATTERN",
+                "name": "Test",
+                "severity": "high",
+                "patterns": ["eval("],
+                "description": "test pattern",
+            }
         ]
         rules = load_rules_from_config(config)
         return SkillScanner(rules=rules, audit_logger=MagicMock())

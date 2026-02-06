@@ -5,12 +5,14 @@ This project uses the SDD workflow powered by `sdd-mcp-server`.
 ## Two Development Paths
 
 ### Path A: Simple Task (`/simple-task`)
+
 For small features, bug fixes, and quick enhancements.
 
 ### Path B: Full SDD Workflow
+
 For complex features requiring formal specification.
 
-```
+```text
 sdd-init → /sdd-requirements → /sdd-design → /sdd-tasks → /sdd-implement
 ```
 
@@ -19,6 +21,7 @@ Each phase requires human approval before proceeding.
 ## Installed Components
 
 ### Skills (`.claude/skills/`)
+
 On-demand guidance invoked via slash commands:
 
 | Skill | Purpose |
@@ -36,18 +39,23 @@ On-demand guidance invoked via slash commands:
 | `/sdd-test-gen` | Test generation skill |
 
 ### Rules (`.claude/rules/`)
+
 Always-active coding standards: coding style, error handling, git workflow, SDD workflow, security, testing.
 
 ### Contexts (`.claude/contexts/`)
+
 Switchable modes: dev, planning, research, review, security audit.
 
 ### Agents (`.claude/agents/`)
+
 Specialized roles: architect, implementer, planner, reviewer, security auditor, TDD guide.
 
 ### Hooks (`.claude/hooks/`)
+
 Lifecycle events: session start/end, pre/post tool use.
 
 ### Steering (`.spec/steering/`)
+
 Project-specific context documents. Edit these to describe your project:
 
 - `product.md` — Product context and business objectives

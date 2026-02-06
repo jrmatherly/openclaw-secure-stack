@@ -34,7 +34,8 @@ services:
 
   openclaw:
     image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:latest}
-    command: ["node", "dist/index.js", "gateway", "--port", "3000", "--bind", "lan"]
+    command:
+      ["node", "dist/index.js", "gateway", "--port", "3000", "--bind", "lan"]
     # No published ports — only reachable from proxy via internal network.
     # For debug access, add ports via docker-compose.override.yml.
     environment:
@@ -52,7 +53,11 @@ services:
       - egress
     tty: true
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health',function(r){process.exit(r.statusCode===200?0:1)}).on('error',function(){process.exit(1)})\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3000/health'',function(r){process.exit(r.statusCode===200?0:1)}).on(''error'',function(){process.exit(1)})"',
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -91,8 +96,10 @@ services:
 
   egress-dns:
     build: docker/egress
-    volumes:
-      - ./config/allowlist.db:/etc/coredns/allowlist.db:ro
+    # Corefile is baked into the image at build time (docker/egress/Dockerfile).
+    # To update the allowlist: edit config/egress-allowlist.conf, re-run
+    # install.sh (regenerates docker/egress/Corefile), then rebuild with
+    # docker compose build egress-dns.
     networks:
       internal:
         ipv4_address: 172.28.0.10

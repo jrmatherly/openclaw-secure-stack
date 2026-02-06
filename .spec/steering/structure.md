@@ -1,7 +1,8 @@
 # Project Structure
 
 ## Directory Organization
-```
+
+```text
 openclaw-secure-stack/
 ├── src/                          # Source code
 │   ├── models.py                 # Shared Pydantic data models (enums, findings, events)
@@ -49,6 +50,7 @@ openclaw-secure-stack/
 ```
 
 ## Key Directories
+
 - **src/proxy/**: Reverse proxy layer — auth + request forwarding + body sanitization
 - **src/scanner/**: Static analysis engine — AST rules + pattern matching + CLI
 - **src/quarantine/**: Quarantine lifecycle — SQLite state + file management
@@ -58,14 +60,16 @@ openclaw-secure-stack/
 - **docker/**: Container infrastructure (CoreDNS egress sidecar)
 
 ## Code Organization Patterns
+
 - **Layered architecture**: proxy → sanitizer → upstream; scanner → quarantine → audit
 - **Dependency injection**: components accept `audit_logger` parameter, None = no logging
 - **Immutable models**: Pydantic `frozen=True` for all data models
 - **Fail-closed**: missing config raises exceptions rather than allowing all
 
 ## File Naming Conventions
+
 - **Source files**: snake_case.py (e.g., `auth_middleware.py`)
-- **Test files**: test_<module>.py (e.g., `test_auth_middleware.py`)
+- **Test files**: `test_<module>.py` (e.g., `test_auth_middleware.py`)
 - **Configuration**: kebab-case.json/conf (e.g., `scanner-rules.json`)
 - **Constants**: UPPER_SNAKE_CASE
 - **Functions/Variables**: snake_case
@@ -73,6 +77,7 @@ openclaw-secure-stack/
 - **Enums**: PascalCase with UPPER_SNAKE_CASE members
 
 ## Architectural Principles
+
 - **Sidecar pattern**: Security stack wraps OpenClaw without modification
 - **Separation of concerns**: Each module handles one security domain
 - **Defense in depth**: Multiple independent security layers

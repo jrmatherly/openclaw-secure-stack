@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,14 +11,14 @@ from pydantic import BaseModel, ConfigDict, Field
 # --- Enums ---
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
 
-class AuditEventType(str, Enum):
+class AuditEventType(StrEnum):
     AUTH_SUCCESS = "auth_success"
     AUTH_FAILURE = "auth_failure"
     SKILL_SCAN = "skill_scan"
@@ -29,7 +29,7 @@ class AuditEventType(str, Enum):
     EGRESS_BLOCKED = "egress_blocked"
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"

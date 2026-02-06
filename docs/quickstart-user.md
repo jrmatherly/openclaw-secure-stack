@@ -89,7 +89,7 @@ docker compose down && docker compose up -d
 
 By default, the stack forwards DNS queries to Google Public DNS (`8.8.8.8`). To use a filtering DNS provider that blocks malicious or unwanted domains, edit `docker/egress/Corefile`:
 
-```
+```text
 . {
     forward . <your-dns-server-ip>
     log
@@ -116,7 +116,7 @@ docker compose up -d --build egress-dns
 
 Access the OpenClaw Control UI dashboard at:
 
-```
+```text
 https://localhost:8443/?token=YOUR_OPENCLAW_TOKEN
 ```
 
@@ -130,9 +130,11 @@ To connect OpenClaw to Telegram:
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) on Telegram
 2. Add the bot token to `.env`:
-   ```
+
+   ```bash
    TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
    ```
+
 3. Restart: `docker compose restart openclaw`
 4. Send `/start` to your bot in Telegram — you'll receive a pairing code to approve
 
@@ -149,6 +151,7 @@ docker compose exec proxy cat /var/log/audit/audit.jsonl
 Each line is a JSON object with fields: `timestamp`, `event_type`, `source_ip`, `action`, `result`, `risk_level`, and `details`.
 
 Event types include:
+
 - `auth_success` / `auth_failure` — authentication attempts
 - `prompt_injection` — detected prompt injection patterns
 - `skill_scan` / `skill_quarantine` / `skill_override` — scanner events
@@ -164,6 +167,7 @@ Event types include:
 ## Re-running the Installer
 
 Running `./install.sh` again is safe. It will:
+
 - Preserve your existing `.env` (prompts before overwriting)
 - Configure the OpenClaw gateway (HTTP API, trusted proxies, Control UI auth)
 - Rebuild and restart containers

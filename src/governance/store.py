@@ -501,8 +501,7 @@ class PlanStore:
             },
             "category": action.category.value,
             "resources": [
-                {"type": r.type, "path": r.path, "operation": r.operation}
-                for r in action.resources
+                {"type": r.type, "path": r.path, "operation": r.operation} for r in action.resources
             ],
             "risk_score": action.risk_score,
         }

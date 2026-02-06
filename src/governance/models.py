@@ -11,7 +11,7 @@ This module defines all data models for the governance layer including:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,7 +20,7 @@ from src.models import RiskLevel, Severity
 # --- Enums ---
 
 
-class IntentCategory(str, Enum):
+class IntentCategory(StrEnum):
     """Categories for classifying tool call intent."""
 
     FILE_READ = "file_read"
@@ -33,7 +33,7 @@ class IntentCategory(str, Enum):
     UNKNOWN = "unknown"
 
 
-class GovernanceDecision(str, Enum):
+class GovernanceDecision(StrEnum):
     """Possible governance decisions for a request."""
 
     ALLOW = "allow"
@@ -42,7 +42,7 @@ class GovernanceDecision(str, Enum):
     RATE_LIMITED = "rate_limited"
 
 
-class ApprovalStatus(str, Enum):
+class ApprovalStatus(StrEnum):
     """Status of an approval request."""
 
     PENDING = "pending"
@@ -51,7 +51,7 @@ class ApprovalStatus(str, Enum):
     EXPIRED = "expired"
 
 
-class PolicyType(str, Enum):
+class PolicyType(StrEnum):
     """Types of governance policies."""
 
     ACTION = "action"
@@ -61,7 +61,7 @@ class PolicyType(str, Enum):
     CONTEXT = "context"
 
 
-class PolicyEffect(str, Enum):
+class PolicyEffect(StrEnum):
     """Effect of a policy rule."""
 
     ALLOW = "allow"

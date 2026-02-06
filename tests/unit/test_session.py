@@ -10,12 +10,14 @@ import pytest
 @pytest.fixture
 def session_mgr(governance_db_path: str):
     from src.governance.session import SessionManager
+
     return SessionManager(governance_db_path, ttl_seconds=3600)
 
 
 class TestSessionCRUD:
     def test_get_or_create_new(self, session_mgr):
         import uuid
+
         session = session_mgr.get_or_create(None)
         uuid.UUID(session.session_id)  # Valid UUID
         assert session.action_count == 0
@@ -34,6 +36,7 @@ class TestSessionCRUD:
 class TestActionRecording:
     def test_record_action_increments_count(self, session_mgr):
         from src.governance.models import GovernanceDecision
+
         session_mgr.get_or_create("sess-1")
         session_mgr.record_action("sess-1", {"name": "test"}, GovernanceDecision.ALLOW, 10)
         updated = session_mgr.get_or_create("sess-1")
@@ -41,6 +44,7 @@ class TestActionRecording:
 
     def test_record_action_updates_risk(self, session_mgr):
         from src.governance.models import GovernanceDecision
+
         session_mgr.get_or_create("sess-1")
         session_mgr.record_action("sess-1", {"name": "test"}, GovernanceDecision.ALLOW, 30)
         updated = session_mgr.get_or_create("sess-1")
@@ -50,6 +54,7 @@ class TestActionRecording:
 class TestHistory:
     def test_get_history(self, session_mgr):
         from src.governance.models import GovernanceDecision
+
         session_mgr.get_or_create("sess-1")
         session_mgr.record_action("sess-1", {"name": "a"}, GovernanceDecision.ALLOW, 10)
         session_mgr.record_action("sess-1", {"name": "b"}, GovernanceDecision.ALLOW, 20)
@@ -58,9 +63,12 @@ class TestHistory:
 
     def test_history_limit(self, session_mgr):
         from src.governance.models import GovernanceDecision
+
         session_mgr.get_or_create("sess-1")
         for i in range(10):
-            session_mgr.record_action("sess-1", {"name": f"action-{i}"}, GovernanceDecision.ALLOW, 5)
+            session_mgr.record_action(
+                "sess-1", {"name": f"action-{i}"}, GovernanceDecision.ALLOW, 5
+            )
         history = session_mgr.get_history("sess-1", limit=5)
         assert len(history) == 5
 
@@ -68,6 +76,7 @@ class TestHistory:
 class TestCleanup:
     def test_cleanup_expired(self, governance_db_path):
         from src.governance.session import SessionManager
+
         mgr = SessionManager(governance_db_path, ttl_seconds=1)
         mgr.get_or_create("old-sess")
         time.sleep(1.1)
@@ -100,9 +109,7 @@ class TestAtomicSequenceAssignment:
 
         session_mgr.get_or_create("seq-test")
         for i in range(5):
-            session_mgr.record_action(
-                "seq-test", {"index": i}, GovernanceDecision.ALLOW, 10
-            )
+            session_mgr.record_action("seq-test", {"index": i}, GovernanceDecision.ALLOW, 10)
 
         history = session_mgr.get_history("seq-test")
         sequences = [h["sequence"] for h in history]
@@ -115,6 +122,7 @@ class TestAtomicSequenceAssignment:
     def test_concurrent_actions_get_unique_sequences(self, governance_db_path):
         """Concurrent record_action calls should not produce duplicate sequences."""
         import threading
+
         from src.governance.models import GovernanceDecision
         from src.governance.session import SessionManager
 
@@ -132,9 +140,7 @@ class TestAtomicSequenceAssignment:
             # Create manager inside the thread to avoid SQLite thread issues
             try:
                 mgr = SessionManager(db_path, ttl_seconds=3600)
-                mgr.record_action(
-                    session_id, {"name": action_name}, GovernanceDecision.ALLOW, 10
-                )
+                mgr.record_action(session_id, {"name": action_name}, GovernanceDecision.ALLOW, 10)
                 results.append(action_name)
                 mgr.close()
             except Exception as e:
@@ -158,6 +164,4 @@ class TestAtomicSequenceAssignment:
         sequences = [h["sequence"] for h in history]
 
         assert len(sequences) == 10, f"Expected 10 actions, got {len(sequences)}"
-        assert len(sequences) == len(set(sequences)), (
-            f"Duplicate sequences found: {sequences}"
-        )
+        assert len(sequences) == len(set(sequences)), f"Duplicate sequences found: {sequences}"

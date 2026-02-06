@@ -6,8 +6,8 @@
  * Detected patterns are stripped from the content and logged.
  */
 
-import { readFileSync, appendFileSync } from "fs";
-import { join } from "path";
+import { appendFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 interface Rule {
   id: string;
@@ -35,10 +35,7 @@ const RULES_PATH =
 
 const LOG_PATH =
   process.env.PROMPT_GUARD_LOG_PATH ||
-  join(
-    process.env.HOME || "/tmp",
-    ".openclaw/prompt-guard-detections.jsonl"
-  );
+  join(process.env.HOME || "/tmp", ".openclaw/prompt-guard-detections.jsonl");
 
 let compiledRules: CompiledRule[] = [];
 
@@ -58,7 +55,7 @@ function loadRules(): void {
 
 function logDetection(detection: Detection): void {
   try {
-    appendFileSync(LOG_PATH, JSON.stringify(detection) + "\n");
+    appendFileSync(LOG_PATH, `${JSON.stringify(detection)}\n`);
   } catch {
     // Best-effort logging — don't crash the hook
   }
@@ -68,7 +65,10 @@ function logDetection(detection: Detection): void {
  * Scan and sanitize text against indirect injection rules.
  * Returns the cleaned text and any detections.
  */
-function scanAndSanitize(text: string): { clean: string; detections: Detection[] } {
+function scanAndSanitize(text: string): {
+  clean: string;
+  detections: Detection[];
+} {
   let clean = text;
   const detections: Detection[] = [];
 
@@ -100,7 +100,9 @@ loadRules();
 
 export default {
   hooks: {
-    tool_result_persist(toolResult: { content: string; tool?: string }): { content: string } {
+    tool_result_persist(toolResult: { content: string; tool?: string }): {
+      content: string;
+    } {
       if (!toolResult.content || compiledRules.length === 0) {
         return toolResult;
       }
@@ -110,7 +112,7 @@ export default {
       for (const d of detections) {
         logDetection(d);
         console.warn(
-          `[prompt-guard] Detected ${d.ruleName} (${d.ruleId}) in tool result${toolResult.tool ? ` from ${toolResult.tool}` : ""}`
+          `[prompt-guard] Detected ${d.ruleName} (${d.ruleId}) in tool result${toolResult.tool ? ` from ${toolResult.tool}` : ""}`,
         );
       }
 

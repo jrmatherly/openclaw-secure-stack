@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-02-06
 
 ### Added
+
 - **Pre-execution governance layer** — comprehensive security framework for LLM tool execution
   - Intent classifier — categorizes tool calls (file read/write, network, code execution, system)
   - Plan generator — creates execution plans with risk assessment
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **214 new tests** — comprehensive coverage for all governance components (389 total tests)
 
 ### Security
+
 - TOCTOU race condition prevention via atomic SQL operations with RETURNING clause
 - HMAC-signed plan tokens with constant-time comparison
 - Atomic compare-and-swap for approval state transitions
@@ -28,15 +30,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.1] - 2026-02-04
 
 ### Changed
+
 - **Refactored scanner rules** — extracted `ASTScanRule` base class to eliminate ~90 lines of duplicate code across `dangerous_api.py`, `fs_abuse.py`, and `network_exfil.py`
 - **Consolidated test fixtures** — added factory functions (`make_audit_event()`, `make_scan_finding()`, `make_scan_report()`) to `conftest.py` for DRY test code
 
 ### Fixed
+
 - **LSP compliance** — base class `_walk()` signature now includes `source_str` parameter, allowing proper polymorphism across all scanner rules
 
 ## [1.0.0] - 2026-02-03
 
 ### Added
+
 - **Security audit script** (`scripts/audit.py`) — validates container hardening, network isolation, secret management, log integrity, skill security, and documentation completeness
 - **Indirect prompt injection defense** — plugin-based sanitization of tool results via OpenClaw hooks
 - **Caddy HTTPS reverse proxy** — TLS termination for Control UI with automatic certificate management
@@ -49,17 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quick start documentation** — user and developer guides in `docs/`
 
 ### Changed
+
 - Replaced DNS allowlist with configurable forwarding
 - Enabled OpenAI-compatible HTTP API (`chatCompletions` endpoint)
 - Improved proxy to forward gateway token to upstream with SSE streaming support
 - Updated Docker Compose configuration for better network isolation
 
 ### Fixed
+
 - Token generation now strips base64 padding for compatibility
 - Network configuration issues with proxy and internal services
 - tmpfs size allocation for container operations
 
 ### Security
+
 - All containers run with read-only filesystem, dropped capabilities, non-root user
 - Network isolation via internal Docker networks
 - AST-based code scanning before skill execution
@@ -68,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2026-01-31
 
 ### Added
+
 - Initial release of OpenClaw Secure Stack
 - Reverse proxy with authentication middleware
 - Basic skill scanner with dangerous API detection

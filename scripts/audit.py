@@ -67,12 +67,14 @@ def container_hardening(runtime: str, compose_cmd: list[str]) -> list[Finding]:
     # Get running service containers
     result = _run([*compose_cmd, "ps", "--format", "json"])
     if result.returncode != 0:
-        return [Finding(
-            check="container_hardening",
-            severity="critical",
-            message="Cannot list running containers. Is the stack running?",
-            remediation="Start the stack with: docker compose up -d",
-        )]
+        return [
+            Finding(
+                check="container_hardening",
+                severity="critical",
+                message="Cannot list running containers. Is the stack running?",
+                remediation="Start the stack with: docker compose up -d",
+            )
+        ]
 
     services_to_check = ["proxy", "openclaw", "egress-dns"]
     for service in services_to_check:
@@ -85,12 +87,14 @@ def container_hardening(runtime: str, compose_cmd: list[str]) -> list[Finding]:
         result = _run([runtime, "inspect", "--format", "{{.Config.User}}", container_id])
         user = result.stdout.strip()
         if user not in ("65534", "65532", "nobody", "nonroot"):
-            findings.append(Finding(
-                check="container_hardening",
-                severity="high",
-                message=f"Service '{service}' runs as user '{user}' (expected non-root)",
-                remediation=f"Set 'user: \"65534\"' or use distroless image for {service}",
-            ))
+            findings.append(
+                Finding(
+                    check="container_hardening",
+                    severity="high",
+                    message=f"Service '{service}' runs as user '{user}' (expected non-root)",
+                    remediation=f"Set 'user: \"65534\"' or use distroless image for {service}",
+                )
+            )
 
     return findings
 
@@ -112,12 +116,14 @@ def network_isolation(compose_file: Path) -> list[Finding]:
         if name in allowed_port_services:
             continue
         if "ports" in svc:
-            findings.append(Finding(
-                check="network_isolation",
-                severity="high",
-                message=f"Service '{name}' publishes ports to host: {svc['ports']}",
-                remediation=f"Remove 'ports' from {name} in docker-compose.yml",
-            ))
+            findings.append(
+                Finding(
+                    check="network_isolation",
+                    severity="high",
+                    message=f"Service '{name}' publishes ports to host: {svc['ports']}",
+                    remediation=f"Remove 'ports' from {name} in docker-compose.yml",
+                )
+            )
 
     return findings
 
@@ -126,12 +132,14 @@ def _parse_yaml_simple(content: str) -> dict:
     """Minimal YAML-like parser for docker-compose — only handles the ports check."""
     try:
         import yaml  # noqa: F811
+
         return yaml.safe_load(content) or {}
     except ImportError:
         pass
 
     # Fallback: check for 'ports:' under non-allowed services via regex
     import re
+
     result: dict = {"services": {}}
     current_service = None
     in_ports = False
@@ -153,7 +161,7 @@ def _parse_yaml_simple(content: str) -> dict:
             if re.match(r"^    ports:", line):
                 in_ports = True
                 continue
-            if in_ports and re.match(r'^      - ', line):
+            if in_ports and re.match(r"^      - ", line):
                 ports.append(line.strip().lstrip("- ").strip('"').strip("'"))
                 continue
             if in_ports and not line.startswith("      "):
@@ -175,12 +183,14 @@ def secret_management(project_root: Path) -> list[Finding]:
     # Check .env is not committed
     result = _run(["git", "ls-files", "--error-unmatch", ".env"], cwd=str(project_root))
     if result.returncode == 0:
-        findings.append(Finding(
-            check="secret_management",
-            severity="critical",
-            message=".env file is tracked in git",
-            remediation="Add .env to .gitignore and run: git rm --cached .env",
-        ))
+        findings.append(
+            Finding(
+                check="secret_management",
+                severity="critical",
+                message=".env file is tracked in git",
+                remediation="Add .env to .gitignore and run: git rm --cached .env",
+            )
+        )
 
     # Check compose file for hardcoded secrets
     compose_file = project_root / "docker-compose.yml"
@@ -189,12 +199,20 @@ def secret_management(project_root: Path) -> list[Finding]:
         secret_patterns = ["password=", "secret=", "api_key=sk-", "token=ey"]
         for pattern in secret_patterns:
             if pattern.lower() in content.lower():
-                findings.append(Finding(
-                    check="secret_management",
-                    severity="high",
-                    message=f"Possible hardcoded secret in docker-compose.yml (pattern: {pattern})",
-                    remediation="Use environment variable references (${VAR}) instead of hardcoded values",
-                ))
+                findings.append(
+                    Finding(
+                        check="secret_management",
+                        severity="high",
+                        message=(
+                            "Possible hardcoded secret in"
+                            f" docker-compose.yml (pattern: {pattern})"
+                        ),
+                        remediation=(
+                            "Use environment variable references"
+                            " (${VAR}) instead of hardcoded values"
+                        ),
+                    )
+                )
 
     return findings
 
@@ -206,39 +224,53 @@ def log_integrity(project_root: Path) -> list[Finding]:
     # Check if audit log rotation is configured
     max_bytes = os.environ.get("AUDIT_LOG_MAX_BYTES")
     if not max_bytes:
-        findings.append(Finding(
-            check="log_integrity",
-            severity="medium",
-            message="AUDIT_LOG_MAX_BYTES not configured — log rotation may not be active",
-            remediation="Set AUDIT_LOG_MAX_BYTES environment variable (e.g., 10485760 for 10MB)",
-        ))
+        findings.append(
+            Finding(
+                check="log_integrity",
+                severity="medium",
+                message="AUDIT_LOG_MAX_BYTES not configured — log rotation may not be active",
+                remediation=(
+                    "Set AUDIT_LOG_MAX_BYTES environment variable"
+                    " (e.g., 10485760 for 10MB)"
+                ),
+            )
+        )
     backup_count = os.environ.get("AUDIT_LOG_BACKUP_COUNT")
     if not backup_count:
-        findings.append(Finding(
-            check="log_integrity",
-            severity="low",
-            message="AUDIT_LOG_BACKUP_COUNT not configured — retention may be default",
-            remediation="Set AUDIT_LOG_BACKUP_COUNT environment variable (e.g., 5)",
-        ))
+        findings.append(
+            Finding(
+                check="log_integrity",
+                severity="low",
+                message="AUDIT_LOG_BACKUP_COUNT not configured — retention may be default",
+                remediation="Set AUDIT_LOG_BACKUP_COUNT environment variable (e.g., 5)",
+            )
+        )
 
     log_path = os.environ.get("AUDIT_LOG_PATH") or str(project_root / "data" / "audit.jsonl")
     log_file = Path(log_path)
     if log_file.exists():
         result = validate_audit_chain(log_file)
         if not result.valid:
-            findings.append(Finding(
-                check="log_integrity",
-                severity="critical",
-                message=f"Audit log hash chain broken at line {result.broken_at_line}",
-                remediation="Investigate tampering; rotate log and restore from trusted backup",
-            ))
+            findings.append(
+                Finding(
+                    check="log_integrity",
+                    severity="critical",
+                    message=f"Audit log hash chain broken at line {result.broken_at_line}",
+                    remediation="Investigate tampering; rotate log and restore from trusted backup",
+                )
+            )
     else:
-        findings.append(Finding(
-            check="log_integrity",
-            severity="low",
-            message=f"Audit log not found at {log_path}",
-            remediation="Ensure AUDIT_LOG_PATH points to the audit log file generated by the proxy",
-        ))
+        findings.append(
+            Finding(
+                check="log_integrity",
+                severity="low",
+                message=f"Audit log not found at {log_path}",
+                remediation=(
+                    "Ensure AUDIT_LOG_PATH points to the"
+                    " audit log file generated by the proxy"
+                ),
+            )
+        )
 
     return findings
 
@@ -249,29 +281,35 @@ def skill_security(project_root: Path) -> list[Finding]:
 
     rules_file = project_root / "config" / "scanner-rules.json"
     if not rules_file.exists():
-        findings.append(Finding(
-            check="skill_security",
-            severity="high",
-            message="Scanner rules file not found at config/scanner-rules.json",
-            remediation="Ensure config/scanner-rules.json exists with valid detection rules",
-        ))
+        findings.append(
+            Finding(
+                check="skill_security",
+                severity="high",
+                message="Scanner rules file not found at config/scanner-rules.json",
+                remediation="Ensure config/scanner-rules.json exists with valid detection rules",
+            )
+        )
     else:
         try:
             rules = json.loads(rules_file.read_text())
             if not rules:
-                findings.append(Finding(
+                findings.append(
+                    Finding(
+                        check="skill_security",
+                        severity="high",
+                        message="Scanner rules file is empty",
+                        remediation="Add detection rules to config/scanner-rules.json",
+                    )
+                )
+        except json.JSONDecodeError:
+            findings.append(
+                Finding(
                     check="skill_security",
                     severity="high",
-                    message="Scanner rules file is empty",
-                    remediation="Add detection rules to config/scanner-rules.json",
-                ))
-        except json.JSONDecodeError:
-            findings.append(Finding(
-                check="skill_security",
-                severity="high",
-                message="Scanner rules file contains invalid JSON",
-                remediation="Fix JSON syntax in config/scanner-rules.json",
-            ))
+                    message="Scanner rules file contains invalid JSON",
+                    remediation="Fix JSON syntax in config/scanner-rules.json",
+                )
+            )
 
     return findings
 
@@ -282,12 +320,14 @@ def documentation(project_root: Path) -> list[Finding]:
     readme = project_root / "README.md"
 
     if not readme.exists():
-        findings.append(Finding(
-            check="documentation",
-            severity="medium",
-            message="README.md not found",
-            remediation="Create README.md with project documentation",
-        ))
+        findings.append(
+            Finding(
+                check="documentation",
+                severity="medium",
+                message="README.md not found",
+                remediation="Create README.md with project documentation",
+            )
+        )
         return findings
 
     content = readme.read_text().lower()
@@ -299,12 +339,14 @@ def documentation(project_root: Path) -> list[Finding]:
     ]
     for keyword, msg in checks:
         if keyword not in content:
-            findings.append(Finding(
-                check="documentation",
-                severity="low",
-                message=msg,
-                remediation=f"Add a section containing '{keyword}' to README.md",
-            ))
+            findings.append(
+                Finding(
+                    check="documentation",
+                    severity="low",
+                    message=msg,
+                    remediation=f"Add a section containing '{keyword}' to README.md",
+                )
+            )
 
     return findings
 
@@ -347,12 +389,14 @@ def performance(runtime: str, compose_cmd: list[str]) -> list[Finding]:
     # Simple health check latency test
     proxy_id = _get_container_id(compose_cmd, "proxy")
     if not proxy_id:
-        findings.append(Finding(
-            check="performance",
-            severity="low",
-            message="Proxy container not running — cannot measure latency",
-            remediation="Start the stack with: docker compose up -d",
-        ))
+        findings.append(
+            Finding(
+                check="performance",
+                severity="low",
+                message="Proxy container not running — cannot measure latency",
+                remediation="Start the stack with: docker compose up -d",
+            )
+        )
     else:
         proxy_port = os.environ.get("PROXY_PORT", "8080")
         proxy_url = os.environ.get("AUDIT_PROXY_URL", f"http://localhost:{proxy_port}/health")
@@ -364,56 +408,75 @@ def performance(runtime: str, compose_cmd: list[str]) -> list[Finding]:
                     resp.read()
                 latencies.append((time.perf_counter() - start) * 1000)
         except (urllib.error.URLError, TimeoutError, OSError):
-            findings.append(Finding(
-                check="performance",
-                severity="low",
-                message=f"Cannot reach proxy health endpoint at {proxy_url}",
-                remediation="Ensure the proxy is reachable from the host and PROXY_PORT is correct",
-            ))
+            findings.append(
+                Finding(
+                    check="performance",
+                    severity="low",
+                    message=f"Cannot reach proxy health endpoint at {proxy_url}",
+                    remediation=(
+                        "Ensure the proxy is reachable from"
+                        " the host and PROXY_PORT is correct"
+                    ),
+                )
+            )
         else:
             if latencies:
                 latencies.sort()
                 p95_index = max(0, math.ceil(0.95 * len(latencies)) - 1)
                 p95_ms = latencies[p95_index]
                 if p95_ms > latency_threshold_ms:
-                    findings.append(Finding(
-                        check="performance",
-                        severity="medium",
-                        message=f"Proxy latency p95 {p95_ms:.1f}ms exceeds {latency_threshold_ms}ms",
-                        remediation="Investigate proxy performance or raise AUDIT_LATENCY_P95_MS",
-                    ))
+                    findings.append(
+                        Finding(
+                            check="performance",
+                            severity="medium",
+                            message=(
+                                f"Proxy latency p95 {p95_ms:.1f}ms"
+                                f" exceeds {latency_threshold_ms}ms"
+                            ),
+                            remediation=(
+                                "Investigate proxy performance"
+                                " or raise AUDIT_LATENCY_P95_MS"
+                            ),
+                        )
+                    )
 
     # Startup time measurement using openclaw health logs (if available)
     startup_service = os.environ.get("AUDIT_STARTUP_SERVICE", "openclaw")
     startup_id = _get_container_id(compose_cmd, startup_service)
     if not startup_id:
-        findings.append(Finding(
-            check="performance",
-            severity="low",
-            message=f"Service '{startup_service}' not running — cannot measure startup time",
-            remediation="Start the stack with: docker compose up -d",
-        ))
+        findings.append(
+            Finding(
+                check="performance",
+                severity="low",
+                message=f"Service '{startup_service}' not running — cannot measure startup time",
+                remediation="Start the stack with: docker compose up -d",
+            )
+        )
         return findings
 
     state_result = _run([runtime, "inspect", startup_id, "--format", "{{json .State}}"])
     if state_result.returncode != 0:
-        findings.append(Finding(
-            check="performance",
-            severity="low",
-            message=f"Cannot inspect service '{startup_service}' — startup time unknown",
-            remediation="Ensure Docker/Podman is running and the service exists",
-        ))
+        findings.append(
+            Finding(
+                check="performance",
+                severity="low",
+                message=f"Cannot inspect service '{startup_service}' — startup time unknown",
+                remediation="Ensure Docker/Podman is running and the service exists",
+            )
+        )
         return findings
 
     try:
         state = json.loads(state_result.stdout)
     except json.JSONDecodeError:
-        findings.append(Finding(
-            check="performance",
-            severity="low",
-            message=f"Invalid inspect output for service '{startup_service}'",
-            remediation="Retry audit after ensuring container runtime is stable",
-        ))
+        findings.append(
+            Finding(
+                check="performance",
+                severity="low",
+                message=f"Invalid inspect output for service '{startup_service}'",
+                remediation="Retry audit after ensuring container runtime is stable",
+            )
+        )
         return findings
 
     started_at = _parse_rfc3339(state.get("StartedAt", ""))
@@ -430,22 +493,26 @@ def performance(runtime: str, compose_cmd: list[str]) -> list[Finding]:
         healthy_at = min(healthy_times)
         startup_seconds = (healthy_at - started_at).total_seconds()
         if startup_seconds > startup_threshold_s:
-            findings.append(Finding(
-                check="performance",
-                severity="medium",
-                message=(
-                    f"Startup time {startup_seconds:.1f}s exceeds {startup_threshold_s}s "
-                    f"(service: {startup_service})"
-                ),
-                remediation="Investigate service startup or raise AUDIT_STARTUP_MAX_SECONDS",
-            ))
+            findings.append(
+                Finding(
+                    check="performance",
+                    severity="medium",
+                    message=(
+                        f"Startup time {startup_seconds:.1f}s exceeds {startup_threshold_s}s "
+                        f"(service: {startup_service})"
+                    ),
+                    remediation="Investigate service startup or raise AUDIT_STARTUP_MAX_SECONDS",
+                )
+            )
     else:
-        findings.append(Finding(
-            check="performance",
-            severity="low",
-            message=f"Startup time unavailable for service '{startup_service}'",
-            remediation="Ensure health checks are enabled to measure startup time",
-        ))
+        findings.append(
+            Finding(
+                check="performance",
+                severity="low",
+                message=f"Startup time unavailable for service '{startup_service}'",
+                remediation="Ensure health checks are enabled to measure startup time",
+            )
+        )
 
     return findings
 
@@ -465,9 +532,9 @@ def print_report(findings: list[Finding], fmt: str = "text") -> None:
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     sorted_findings = sorted(findings, key=lambda f: severity_order.get(f.severity, 99))
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f" Security Audit Report — {len(findings)} finding(s)")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     for f in sorted_findings:
         icon = {"critical": "[CRIT]", "high": "[HIGH]", "medium": "[MED ]", "low": "[LOW ]"}.get(
@@ -509,12 +576,14 @@ def main() -> int:
         try:
             all_findings.extend(check())
         except Exception as e:
-            all_findings.append(Finding(
-                check="internal",
-                severity="medium",
-                message=f"Check failed with error: {e}",
-                remediation="Review the error and fix the underlying issue",
-            ))
+            all_findings.append(
+                Finding(
+                    check="internal",
+                    severity="medium",
+                    message=f"Check failed with error: {e}",
+                    remediation="Review the error and fix the underlying issue",
+                )
+            )
 
     print_report(all_findings, fmt=args.format)
     return 0 if not all_findings else 1

@@ -1,0 +1,212 @@
+{
+  "project": "openclaw-secure-stack",
+  "version": "1.1.0",
+  "description": "Security-hardened Docker wrapper for OpenClaw AI agent",
+  "python": ">=3.12",
+  "commit": "5512bb8",
+  "generated": "2026-02-06",
+  "stats": {
+    "source_loc": 4754,
+    "test_functions": 371,
+    "test_files": 31,
+    "source_files": 24,
+    "packages": 6,
+    "config_files": 7,
+    "coverage_target": 90
+  },
+  "entry_points": {
+    "proxy": {
+      "module": "src.proxy.app:create_app_from_env",
+      "runner": "uvicorn --factory",
+      "port": 8080
+    },
+    "cli": {
+      "module": "src.scanner.cli:cli",
+      "command": "openclaw-scanner",
+      "framework": "click"
+    },
+    "audit": {
+      "script": "scripts/audit.py",
+      "args": ["--format", "json|text"]
+    }
+  },
+  "modules": {
+    "src/proxy": {
+      "purpose": "FastAPI reverse proxy with auth, sanitization, streaming",
+      "loc": 334,
+      "files": {
+        "app.py": "App factory, route handler, request/response pipeline",
+        "auth_middleware.py": "ASGI Bearer token auth with hmac.compare_digest"
+      },
+      "exports": ["create_app", "create_app_from_env"]
+    },
+    "src/scanner": {
+      "purpose": "Tree-sitter AST skill scanner with pin verification",
+      "loc": 624,
+      "files": {
+        "scanner.py": "SkillScanner orchestrator, PatternScanRule, pin verification",
+        "cli.py": "Click CLI: scan, quarantine list/override",
+        "trust_score.py": "0-100 trust score computation",
+        "rules/base.py": "ASTScanRule base class",
+        "rules/dangerous_api.py": "Dynamic code evaluation detection",
+        "rules/fs_abuse.py": "Filesystem write/delete detection",
+        "rules/network_exfil.py": "Network exfiltration detection"
+      },
+      "exports": ["SkillScanner", "ScanRule", "PatternScanRule", "ASTScanRule"]
+    },
+    "src/sanitizer": {
+      "purpose": "Regex-based prompt injection detection and neutralization",
+      "loc": 86,
+      "files": {
+        "sanitizer.py": "PromptSanitizer with strip/reject actions"
+      },
+      "exports": ["PromptSanitizer", "PromptInjectionError"]
+    },
+    "src/audit": {
+      "purpose": "Append-only JSON Lines logger with SHA-256 hash chain",
+      "loc": 114,
+      "files": {
+        "logger.py": "AuditLogger with rotation, locking, chain validation"
+      },
+      "exports": [
+        "AuditLogger",
+        "validate_audit_chain",
+        "ChainValidationResult"
+      ]
+    },
+    "src/quarantine": {
+      "purpose": "Skill quarantine lifecycle with SQLite persistence",
+      "loc": 218,
+      "files": {
+        "manager.py": "QuarantineManager: quarantine, enforce, override, rescan",
+        "db.py": "QuarantineDB: SQLite skill_metadata table"
+      },
+      "exports": ["QuarantineManager", "QuarantineBlockedError", "QuarantineDB"]
+    },
+    "src/governance": {
+      "purpose": "Pre-execution governance: classify -> plan -> validate -> approve/enforce",
+      "loc": 2750,
+      "files": {
+        "models.py": "Pydantic models for all governance types",
+        "classifier.py": "IntentClassifier: tool call extraction and categorization",
+        "planner.py": "PlanGenerator: execution plans with risk assessment",
+        "validator.py": "PolicyValidator: action/resource/sequence/rate policies",
+        "approver.py": "ApprovalGate: human-in-the-loop with timeout",
+        "enforcer.py": "GovernanceEnforcer: HMAC token verification, action matching",
+        "session.py": "SessionManager: multi-turn tracking, rate limiting",
+        "store.py": "PlanStore: HMAC-signed tokens, atomic sequence advancement",
+        "db.py": "GovernanceDB: SQLite WAL wrapper, 4 tables",
+        "middleware.py": "GovernanceMiddleware: orchestrates all components"
+      },
+      "exports": [
+        "GovernanceMiddleware",
+        "EvaluationResult",
+        "EnforcementResult"
+      ]
+    },
+    "src/models.py": {
+      "purpose": "Shared Pydantic models used across all modules",
+      "loc": 139,
+      "exports": [
+        "Severity",
+        "AuditEventType",
+        "RiskLevel",
+        "PinResult",
+        "ScanFinding",
+        "TrustScore",
+        "ScanReport",
+        "QuarantinedSkill",
+        "SanitizeResult",
+        "SanitizationRule",
+        "AuditEvent"
+      ]
+    }
+  },
+  "config": {
+    "config/scanner-rules.json": "Pattern-based scan rules (7 rules)",
+    "config/skill-pins.json": "SHA-256 hashes for approved skills",
+    "config/prompt-rules.json": "Prompt injection rules (6 rules, strip/reject)",
+    "config/indirect-injection-rules.json": "Response-side injection scanning rules",
+    "config/governance-policies.json": "Governance policies (8 rules: action/resource/sequence/rate)",
+    "config/intent-patterns.json": "Tool-to-category mapping, argument patterns, risk multipliers",
+    "config/egress-allowlist.conf": "Domain allowlist for CoreDNS egress filtering"
+  },
+  "infrastructure": {
+    "services": {
+      "proxy": {
+        "image": "Dockerfile (distroless)",
+        "ports": ["8080"],
+        "purpose": "FastAPI reverse proxy"
+      },
+      "openclaw": {
+        "image": "ghcr.io/openclaw/openclaw:latest",
+        "ports": [],
+        "purpose": "AI gateway (internal)"
+      },
+      "caddy": {
+        "image": "caddy:2-alpine",
+        "ports": ["8443"],
+        "purpose": "TLS termination"
+      },
+      "egress-dns": {
+        "image": "docker/egress/",
+        "ports": [],
+        "purpose": "CoreDNS egress filter"
+      }
+    },
+    "networks": {
+      "internal": "172.28.0.0/16, bridge, internal:true",
+      "egress": "bridge, filtered internet via CoreDNS"
+    },
+    "hardening": [
+      "read_only",
+      "cap_drop:ALL",
+      "no-new-privileges",
+      "non-root",
+      "tmpfs"
+    ]
+  },
+  "security_layers": [
+    "Network isolation (Docker internal + CoreDNS egress)",
+    "Authentication (Bearer token, hmac.compare_digest)",
+    "Prompt injection (regex strip/reject, request + response)",
+    "Skill scanning (tree-sitter AST + pattern match, SHA-256 pins)",
+    "Governance (classify -> plan -> validate -> approve/enforce)",
+    "Audit (append-only JSONL, SHA-256 hash chain)",
+    "Container hardening (distroless, read-only, no caps, non-root)"
+  ],
+  "dependencies": {
+    "production": {
+      "fastapi": ">=0.115.0",
+      "uvicorn": ">=0.32.0",
+      "httpx": ">=0.28.0",
+      "pydantic": ">=2.10.0",
+      "click": ">=8.1.0",
+      "tree-sitter": ">=0.24.0",
+      "tree-sitter-javascript": ">=0.23.0",
+      "tree-sitter-typescript": ">=0.23.0"
+    },
+    "dev": {
+      "pytest": ">=8.0.0",
+      "pytest-asyncio": ">=0.24.0",
+      "pytest-cov": ">=6.0.0",
+      "pytest-httpx": ">=0.34.0",
+      "ruff": ">=0.8.0",
+      "mypy": ">=1.13.0"
+    }
+  },
+  "tests": {
+    "unit": 27,
+    "integration": 3,
+    "security": 1,
+    "framework": "pytest + pytest-asyncio + pytest-httpx",
+    "coverage_target": "90%",
+    "async_mode": "auto",
+    "markers": ["slow", "security"]
+  },
+  "scripts": {
+    "install.sh": "Full installation wizard (Docker, .env, DNS, LLM auth, onboard)",
+    "build.sh": "Docker/Podman image build",
+    "scripts/audit.py": "OWASP-aligned security audit"
+  }
+}

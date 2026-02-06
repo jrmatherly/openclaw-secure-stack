@@ -15,7 +15,7 @@ def test_detects_fetch_to_unknown_domain():
 
 
 def test_detects_xmlhttprequest():
-    source = b'const xhr = new XMLHttpRequest();'
+    source = b"const xhr = new XMLHttpRequest();"
     findings = rule.detect(parse_js(source), source, "test.js")
     assert len(findings) >= 1
 

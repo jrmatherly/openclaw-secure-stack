@@ -55,9 +55,7 @@ class QuarantineDB:
         self.conn.commit()
 
     def get_skill(self, name: str) -> dict[str, object] | None:
-        row = self.conn.execute(
-            "SELECT * FROM skill_metadata WHERE name = ?", (name,)
-        ).fetchone()
+        row = self.conn.execute("SELECT * FROM skill_metadata WHERE name = ?", (name,)).fetchone()
         return dict(row) if row else None
 
     def update_status(

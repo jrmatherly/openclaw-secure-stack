@@ -54,8 +54,7 @@ class ScanRule(ABC):
     severity: Severity
 
     @abstractmethod
-    def detect(self, tree: Tree, source: bytes, file_path: str) -> list[ScanFinding]:
-        ...
+    def detect(self, tree: Tree, source: bytes, file_path: str) -> list[ScanFinding]: ...
 
 
 class PatternScanRule(ScanRule):
@@ -160,10 +159,14 @@ def load_pins_from_file(pins_path: str) -> tuple[dict[str, dict[str, str]], bool
     try:
         data = json.loads(path.read_text())
     except json.JSONDecodeError:
-        logger.warning("Skill pin file at %s is invalid JSON — proceeding without pin checks", pins_path)
+        logger.warning(
+            "Skill pin file at %s is invalid JSON — proceeding without pin checks", pins_path
+        )
         return {}, True
     if not isinstance(data, dict):
-        logger.warning("Skill pin file at %s must be a JSON object — proceeding without pin checks", pins_path)
+        logger.warning(
+            "Skill pin file at %s must be a JSON object — proceeding without pin checks", pins_path
+        )
         return {}, True
     return data, True
 
@@ -174,9 +177,7 @@ def _find_js_files(skill_path: str) -> list[Path]:
     if path.is_file():
         return [path] if path.suffix in (".js", ".ts", ".mjs", ".cjs") else []
     return sorted(
-        f
-        for f in path.rglob("*")
-        if f.is_file() and f.suffix in (".js", ".ts", ".mjs", ".cjs")
+        f for f in path.rglob("*") if f.is_file() and f.suffix in (".js", ".ts", ".mjs", ".cjs")
     )
 
 
@@ -195,7 +196,9 @@ class SkillScanner:
         self._pins: dict[str, dict[str, str]] = pin_data or {}
         self._pins_loaded = pins_loaded
 
-    def _verify_pin(self, skill_path: Path, skill_name: str, checksum: str | None = None) -> PinResult:
+    def _verify_pin(
+        self, skill_path: Path, skill_name: str, checksum: str | None = None
+    ) -> PinResult:
         """Compare SHA-256 of skill file/dir against pinned hash."""
         actual = checksum or _compute_checksum(str(skill_path))
         pin_entry = self._pins.get(skill_name, {})

@@ -21,7 +21,7 @@ The proxy listens on `http://localhost:8000` by default (uvicorn default).
 
 ## Running Tests
 
-The test suite has 117 tests across three categories:
+The test suite has 371 tests across three categories:
 
 ```bash
 # All tests
@@ -100,6 +100,7 @@ Rules are defined in `config/prompt-rules.json` and applied by `src/sanitizer/sa
 ### Adding a New Prompt Injection Rule
 
 1. Add a rule entry to `config/prompt-rules.json`:
+
    ```json
    {
      "id": "PI-007",
@@ -109,12 +110,13 @@ Rules are defined in `config/prompt-rules.json` and applied by `src/sanitizer/sa
      "description": "What this rule catches"
    }
    ```
+
 2. Add tests in `tests/unit/test_sanitizer.py`
 3. The sanitizer loads rules from the JSON file at startup — no code changes needed for new patterns
 
 ## Project Layout
 
-```
+```text
 src/
 ├── models.py              # Shared Pydantic models (frozen): ScanFinding, AuditEvent, etc.
 ├── proxy/
@@ -133,18 +135,33 @@ src/
 │   └── manager.py         # Quarantine lifecycle: quarantine, override, rescan
 ├── sanitizer/
 │   └── sanitizer.py       # Prompt injection detection: regex strip/reject
+├── governance/
+│   ├── middleware.py       # Orchestrator: evaluate, enforce, approve, reject
+│   ├── classifier.py      # IntentClassifier: tool call extraction & categorization
+│   ├── planner.py         # PlanGenerator: execution plans with risk assessment
+│   ├── validator.py       # PolicyValidator: action/resource/sequence/rate policies
+│   ├── approver.py        # ApprovalGate: human-in-the-loop with timeout
+│   ├── enforcer.py        # GovernanceEnforcer: HMAC token verification
+│   ├── session.py         # SessionManager: multi-turn tracking, rate limiting
+│   ├── store.py           # PlanStore: HMAC-signed tokens, atomic operations
+│   ├── db.py              # GovernanceDB: SQLite WAL wrapper, 4 tables
+│   └── models.py          # Pydantic models for governance types
 └── audit/
     └── logger.py          # Append-only JSON Lines logger (file-locked writes)
 
 config/
 ├── scanner-rules.json     # Scanner rule definitions (loaded at startup)
+├── skill-pins.json        # SHA-256 hashes for approved skills
 ├── prompt-rules.json      # Prompt injection regex rules (loaded at startup)
+├── indirect-injection-rules.json  # Response-side injection scanning rules
+├── governance-policies.json       # Governance policies (action/resource/sequence/rate)
+├── intent-patterns.json           # Tool-to-category mapping, risk multipliers
 └── egress-allowlist.conf  # Allowed external domains (one per line)
 
 tests/
 ├── conftest.py            # Shared fixtures
-├── unit/                  # 13 test files — one per module
-├── integration/           # Proxy auth + scan-quarantine pipeline
+├── unit/                  # 27 test files — one per module
+├── integration/           # 3 integration test files
 └── security/              # Adversarial skill tests
 ```
 
@@ -152,7 +169,7 @@ tests/
 
 This project uses Spec-Driven Development. For non-trivial features:
 
-```
+```text
 sdd-init → /sdd-requirements → /sdd-design → /sdd-tasks → /sdd-implement
 ```
 

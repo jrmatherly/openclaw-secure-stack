@@ -35,8 +35,11 @@ class DangerousAPIRule(ASTScanRule):
             if func_node and func_node.type == "identifier":
                 name = func_node.text.decode()
                 if name in DANGEROUS_IDENTIFIERS or name in DANGEROUS_METHODS:
-                    findings.append(self._make_finding(func_node, lines, file_path,
-                                                       f"Dangerous API call: {name}()"))
+                    findings.append(
+                        self._make_finding(
+                            func_node, lines, file_path, f"Dangerous API call: {name}()"
+                        )
+                    )
 
             # member expression: child_process.exec(...)
             if func_node and func_node.type == "member_expression":
@@ -49,8 +52,10 @@ class DangerousAPIRule(ASTScanRule):
         if node.type == "new_expression" and node.child_by_field_name("constructor"):
             ctor = node.child_by_field_name("constructor")
             if (
-                ctor and ctor.type == "identifier"
-                and ctor.text and ctor.text.decode() in DANGEROUS_IDENTIFIERS
+                ctor
+                and ctor.type == "identifier"
+                and ctor.text
+                and ctor.text.decode() in DANGEROUS_IDENTIFIERS
             ):
                 msg = f"Dangerous constructor: new {ctor.text.decode()}()"
                 findings.append(self._make_finding(ctor, lines, file_path, msg))
@@ -65,7 +70,10 @@ class DangerousAPIRule(ASTScanRule):
                     if arg.type == "string" and arg.text:
                         val = arg.text.decode().strip("'\"")
                         if val in DANGEROUS_REQUIRES:
-                            findings.append(self._make_finding(arg, lines, file_path,
-                                                               f"Dangerous require: {val}"))
+                            findings.append(
+                                self._make_finding(
+                                    arg, lines, file_path, f"Dangerous require: {val}"
+                                )
+                            )
 
         self._walk_children(node, findings, lines, file_path, source_str)

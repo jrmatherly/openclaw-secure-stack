@@ -8,7 +8,7 @@ A security wrapper around OpenClaw deployed via Docker Compose. The system is st
 
 **Sidecar / Reverse-Proxy pattern** — each security concern runs as a separate container or layer composed around the unmodified OpenClaw container. This satisfies the constraint of not modifying OpenClaw core code while keeping each security domain isolated and independently testable.
 
-```
+```text
                     ┌────────────────────────────────────────────────┐
                     │           Docker Compose Stack                 │
                     │                                                │
@@ -61,12 +61,14 @@ A security wrapper around OpenClaw deployed via Docker Compose. The system is st
 **Purpose:** Reverse proxy that authenticates all inbound requests before forwarding to OpenClaw.
 
 **Responsibilities:**
+
 - Validate Bearer token on every request
 - Forward authenticated requests to OpenClaw container
 - Inject prompt sanitization on LLM-bound request bodies
 - Return 401/403 for invalid auth
 
 **Interface:**
+
 ```python
 from pydantic import BaseModel
 
@@ -91,11 +93,13 @@ class ProxyApp:
 ```
 
 **Dependencies:**
+
 - `PromptSanitizer` — for FR-8
 - `AuditLogger` — for FR-10
 - Environment variable `API_TOKEN` — for FR-6
 
 **Error Handling:**
+
 - Missing/invalid token → 401/403, logged as audit event
 - Upstream OpenClaw unreachable → 502, logged as ERROR
 - Prompt injection detected → configurable: strip or reject (400)
@@ -109,6 +113,7 @@ class ProxyApp:
 **Purpose:** Static analysis of skill source code to detect malicious patterns. Runs on skill install/load and on-demand via CLI.
 
 **Responsibilities:**
+
 - Parse skill source files into AST via `tree-sitter`
 - Match against configurable rule set (FR-3)
 - Compute trust score (FR-3 AC-7)
@@ -116,6 +121,7 @@ class ProxyApp:
 - Output structured scan report
 
 **Interface:**
+
 ```python
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -169,11 +175,13 @@ class SkillScanner:
 ```
 
 **Dependencies:**
+
 - `QuarantineManager` — moves flagged skills
 - `AuditLogger` — logs scan events
 - Scanner rules config file (`config/scanner-rules.json`)
 
 **Error Handling:**
+
 - Unparseable file → log warning, treat as suspicious (high severity finding)
 - Rule config missing → fail-closed, refuse to approve any skill
 
@@ -186,12 +194,14 @@ class SkillScanner:
 **Purpose:** Manages the lifecycle of flagged skills — quarantine, override, re-scan.
 
 **Responsibilities:**
+
 - Move flagged skills to quarantine directory
 - Prevent quarantined skills from loading
 - Handle force-override with acknowledgment
 - Track quarantine state in SQLite
 
 **Interface:**
+
 ```python
 from pydantic import BaseModel
 
@@ -222,6 +232,7 @@ class QuarantineManager:
 ```
 
 **Dependencies:**
+
 - `SkillScanner` — for re-scan
 - `AuditLogger` — logs quarantine/override events
 - SQLite database for state
@@ -235,11 +246,13 @@ class QuarantineManager:
 **Purpose:** Detect and neutralize prompt injection patterns in user input before it reaches the LLM.
 
 **Responsibilities:**
+
 - Pattern-match against configurable injection rules
 - Strip or reject detected injections
 - Preserve legitimate input unchanged
 
 **Interface:**
+
 ```python
 from pydantic import BaseModel
 
@@ -257,6 +270,7 @@ class PromptSanitizer:
 ```
 
 **Dependencies:**
+
 - Rules config file (`config/prompt-rules.json`)
 - `AuditLogger` — logs injection detections
 
@@ -269,6 +283,7 @@ class PromptSanitizer:
 **Purpose:** Append-only structured logging for all security events.
 
 **Interface:**
+
 ```python
 from enum import Enum
 from pydantic import BaseModel
@@ -305,6 +320,7 @@ class AuditLogger:
 ```
 
 **Dependencies:**
+
 - Named Docker volume for log persistence
 - Log rotation config
 
@@ -319,7 +335,8 @@ class AuditLogger:
 **Implementation:** CoreDNS container configured to resolve only allowlisted domains, combined with iptables rules in the Docker network that restrict outbound connections to resolved IPs.
 
 **Config file:** `config/egress-allowlist.conf`
-```
+
+```text
 # One domain per line
 api.openai.com
 api.anthropic.com
@@ -336,6 +353,7 @@ api.anthropic.com
 **Purpose:** One-click bootstrap: prereq check, token generation, env setup, stack launch.
 
 **Flow:**
+
 1. Check Docker >= 20.10 and docker-compose >= 2.0
 2. Check available disk space and architecture (amd64/arm64)
 3. Generate 32-byte cryptographic random token (base64-encoded)
@@ -382,7 +400,7 @@ Note: `ast_query` uses tree-sitter S-expression query syntax for precise AST mat
 
 ## File Structure
 
-```
+```text
 openclaw-secure-stack/
 ├── docker-compose.yml          # Stack orchestration
 ├── install.sh                  # One-click setup (FR-5)
@@ -550,6 +568,7 @@ The `internal: true` network setting blocks all egress by default. The egress-dn
 | E2E | `install.sh` to running stack, authenticated request, skill scan | Full workflow |
 
 ### Key Testing Tools
+
 - `pytest` + `pytest-asyncio` for all Python tests
 - `httpx.AsyncClient` for integration testing the FastAPI proxy
 - `testcontainers-python` for Docker-based integration tests

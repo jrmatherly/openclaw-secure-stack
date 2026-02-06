@@ -15,8 +15,8 @@ from src.audit.logger import AuditLogger
 from src.models import AuditEvent, AuditEventType, RiskLevel
 from src.proxy.auth_middleware import AuthMiddleware
 from src.quarantine.manager import QuarantineBlockedError, QuarantineManager
-from src.scanner.scanner import SkillScanner, load_pins_from_file, load_rules_from_file
 from src.sanitizer.sanitizer import PromptInjectionError, PromptSanitizer
+from src.scanner.scanner import SkillScanner, load_pins_from_file, load_rules_from_file
 
 
 def create_app_from_env() -> FastAPI:
@@ -24,10 +24,12 @@ def create_app_from_env() -> FastAPI:
     upstream_url = os.environ["UPSTREAM_URL"]
     token = os.environ["OPENCLAW_TOKEN"]
     prompt_rules = os.environ.get(
-        "PROMPT_RULES_PATH", "config/prompt-rules.json",
+        "PROMPT_RULES_PATH",
+        "config/prompt-rules.json",
     )
     indirect_rules = os.environ.get(
-        "INDIRECT_RULES_PATH", "config/indirect-injection-rules.json",
+        "INDIRECT_RULES_PATH",
+        "config/indirect-injection-rules.json",
     )
     audit_log = os.environ.get("AUDIT_LOG_PATH")
     sanitizer = PromptSanitizer(prompt_rules)
@@ -135,8 +137,13 @@ def create_app(
 
         if is_streaming:
             return await _stream_response(
-                request.method, url, headers, body, timeout,
-                response_scanner, audit_logger,
+                request.method,
+                url,
+                headers,
+                body,
+                timeout,
+                response_scanner,
+                audit_logger,
             )
 
         try:
@@ -154,13 +161,15 @@ def create_app(
                     if findings:
                         fwd_headers["X-Prompt-Guard"] = "injection-detected"
                         if audit_logger:
-                            audit_logger.log(AuditEvent(
-                                event_type=AuditEventType.INDIRECT_INJECTION,
-                                action="response_scan",
-                                result="detected",
-                                risk_level=RiskLevel.HIGH,
-                                details={"patterns": findings},
-                            ))
+                            audit_logger.log(
+                                AuditEvent(
+                                    event_type=AuditEventType.INDIRECT_INJECTION,
+                                    action="response_scan",
+                                    result="detected",
+                                    risk_level=RiskLevel.HIGH,
+                                    details={"patterns": findings},
+                                )
+                            )
                 return Response(
                     content=resp.content,
                     status_code=resp.status_code,
@@ -177,10 +186,14 @@ def create_app(
 
 def _strip_hop_by_hop(headers: httpx.Headers) -> dict[str, str]:
     return {
-        k: v for k, v in headers.items()
-        if k.lower() not in (
-            "content-length", "transfer-encoding",
-            "connection", "keep-alive",
+        k: v
+        for k, v in headers.items()
+        if k.lower()
+        not in (
+            "content-length",
+            "transfer-encoding",
+            "connection",
+            "keep-alive",
         )
     }
 
@@ -214,13 +227,15 @@ async def _stream_response(
                     if findings:
                         injection_logged = True
                         if audit_logger:
-                            audit_logger.log(AuditEvent(
-                                event_type=AuditEventType.INDIRECT_INJECTION,
-                                action="response_scan_stream",
-                                result="detected",
-                                risk_level=RiskLevel.HIGH,
-                                details={"patterns": findings},
-                            ))
+                            audit_logger.log(
+                                AuditEvent(
+                                    event_type=AuditEventType.INDIRECT_INJECTION,
+                                    action="response_scan_stream",
+                                    result="detected",
+                                    risk_level=RiskLevel.HIGH,
+                                    details={"patterns": findings},
+                                )
+                            )
                 yield chunk
         finally:
             await resp.aclose()

@@ -19,12 +19,7 @@
       "save_file",
       "edit_file"
     ],
-    "file_delete": [
-      "delete_file",
-      "remove_file",
-      "rm",
-      "unlink"
-    ],
+    "file_delete": ["delete_file", "remove_file", "rm", "unlink"],
     "network_request": [
       "http_get",
       "http_post",
@@ -44,17 +39,8 @@
       "bash",
       "shell"
     ],
-    "skill_invocation": [
-      "invoke_skill",
-      "call_skill",
-      "run_skill"
-    ],
-    "system_command": [
-      "shell_command",
-      "system",
-      "subprocess",
-      "os_command"
-    ]
+    "skill_invocation": ["invoke_skill", "call_skill", "run_skill"],
+    "system_command": ["shell_command", "system", "subprocess", "os_command"]
   },
   "argument_patterns": {
     "sensitive_paths": [
@@ -68,9 +54,7 @@
       ".*\\.key$",
       ".*\\.env$"
     ],
-    "external_urls": [
-      "^https?://(?!localhost|127\\.0\\.0\\.1|\\[::1\\])"
-    ]
+    "external_urls": ["^https?://(?!localhost|127\\.0\\.0\\.1|\\[::1\\])"]
   },
   "risk_multipliers": {
     "file_read": 1.0,

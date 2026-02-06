@@ -17,12 +17,14 @@ def secret() -> str:
 @pytest.fixture
 def plan_store(governance_db_path: str, secret: str):
     from src.governance.store import PlanStore
+
     return PlanStore(governance_db_path, secret)
 
 
 @pytest.fixture
 def enforcer(governance_db_path: str, secret: str):
     from src.governance.enforcer import GovernanceEnforcer
+
     return GovernanceEnforcer(governance_db_path, secret)
 
 
@@ -37,6 +39,7 @@ def sample_plan():
         RiskLevel,
         ToolCall,
     )
+
     return ExecutionPlan(
         plan_id=str(uuid.uuid4()),
         session_id="sess-1",
@@ -44,14 +47,18 @@ def sample_plan():
         actions=[
             PlannedAction(
                 sequence=0,
-                tool_call=ToolCall(name="read_file", arguments={"path": "/tmp/test.txt"}, id="call-1"),
+                tool_call=ToolCall(
+                    name="read_file", arguments={"path": "/tmp/test.txt"}, id="call-1"
+                ),
                 category=IntentCategory.FILE_READ,
                 resources=[ResourceAccess(type="file", path="/tmp/test.txt", operation="read")],
                 risk_score=10,
             ),
             PlannedAction(
                 sequence=1,
-                tool_call=ToolCall(name="write_file", arguments={"path": "/tmp/out.txt"}, id="call-2"),
+                tool_call=ToolCall(
+                    name="write_file", arguments={"path": "/tmp/out.txt"}, id="call-2"
+                ),
                 category=IntentCategory.FILE_WRITE,
                 resources=[ResourceAccess(type="file", path="/tmp/out.txt", operation="write")],
                 risk_score=30,
@@ -85,8 +92,9 @@ class TestTokenVerification:
 
     def test_verify_expired_token(self, governance_db_path, secret, sample_plan):
         import time
-        from src.governance.store import PlanStore
+
         from src.governance.enforcer import GovernanceEnforcer
+        from src.governance.store import PlanStore
 
         store = PlanStore(governance_db_path, secret)
         plan_id, token = store.store(sample_plan, ttl_seconds=1)
@@ -100,6 +108,7 @@ class TestTokenVerification:
 class TestActionEnforcement:
     def test_enforce_valid_action(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, token = plan_store.store(sample_plan)
 
         # First action at sequence 0
@@ -109,6 +118,7 @@ class TestActionEnforcement:
 
     def test_enforce_rejects_without_token(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, _ = plan_store.store(sample_plan)
 
         tool_call = ToolCall(name="read_file", arguments={"path": "/tmp/test.txt"}, id="call-1")
@@ -118,6 +128,7 @@ class TestActionEnforcement:
 
     def test_enforce_rejects_invalid_token(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, _ = plan_store.store(sample_plan)
 
         tool_call = ToolCall(name="read_file", arguments={"path": "/tmp/test.txt"}, id="call-1")
@@ -126,6 +137,7 @@ class TestActionEnforcement:
 
     def test_enforce_rejects_unplanned_action(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, token = plan_store.store(sample_plan)
 
         # Tool not in plan - the enforcer now matches by sequence position
@@ -136,6 +148,7 @@ class TestActionEnforcement:
 
     def test_enforce_rejects_out_of_sequence(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, token = plan_store.store(sample_plan)
 
         # Try second action first (sequence 1 before sequence 0)
@@ -148,6 +161,7 @@ class TestActionEnforcement:
 class TestSequenceTracking:
     def test_sequence_advances_on_success(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, token = plan_store.store(sample_plan)
 
         # Execute first action
@@ -166,6 +180,7 @@ class TestSequenceTracking:
 
     def test_retry_same_action_allowed(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, token = plan_store.store(sample_plan)
 
         # Execute first action multiple times (retry scenario)
@@ -176,7 +191,9 @@ class TestSequenceTracking:
         assert result1.allowed is True
         assert result2.allowed is True
 
-    def test_mark_action_complete_returns_false_on_mismatch(self, enforcer, plan_store, sample_plan):
+    def test_mark_action_complete_returns_false_on_mismatch(
+        self, enforcer, plan_store, sample_plan
+    ):
         """mark_action_complete returns False when sequence doesn't match."""
         plan_id, _ = plan_store.store(sample_plan)
 
@@ -187,7 +204,9 @@ class TestSequenceTracking:
         # Sequence should be unchanged
         assert plan_store.get_current_sequence(plan_id) == 0
 
-    def test_mark_action_complete_prevents_double_completion(self, enforcer, plan_store, sample_plan):
+    def test_mark_action_complete_prevents_double_completion(
+        self, enforcer, plan_store, sample_plan
+    ):
         """Two calls to complete same action - only first succeeds."""
         plan_id, _ = plan_store.store(sample_plan)
 
@@ -204,6 +223,7 @@ class TestSequenceTracking:
 class TestPlanNotFound:
     def test_enforce_rejects_nonexistent_plan(self, enforcer):
         from src.governance.models import ToolCall
+
         tool_call = ToolCall(name="read_file", arguments={"path": "/tmp/test.txt"}, id="call-1")
         result = enforcer.enforce_action("nonexistent-plan", "some.token", tool_call)
         assert result.allowed is False
@@ -214,6 +234,7 @@ class TestPlanNotFound:
 class TestEnforcementResult:
     def test_result_includes_plan_info(self, enforcer, plan_store, sample_plan):
         from src.governance.models import ToolCall
+
         plan_id, token = plan_store.store(sample_plan)
 
         tool_call = ToolCall(name="read_file", arguments={"path": "/tmp/test.txt"}, id="call-1")

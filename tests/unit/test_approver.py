@@ -11,18 +11,21 @@ import pytest
 @pytest.fixture
 def approver(governance_db_path: str):
     from src.governance.approver import ApprovalGate
+
     return ApprovalGate(governance_db_path, allow_self_approval=True)
 
 
 @pytest.fixture
 def approver_no_self(governance_db_path: str):
     from src.governance.approver import ApprovalGate
+
     return ApprovalGate(governance_db_path, allow_self_approval=False)
 
 
 @pytest.fixture
 def sample_violations():
     from src.governance.models import PolicyViolation, Severity
+
     return [
         PolicyViolation(
             rule_id="GOV-002",
@@ -36,6 +39,7 @@ def sample_violations():
 class TestRequestCreation:
     def test_creates_approval_request(self, approver, sample_violations):
         from src.governance.models import ApprovalStatus
+
         request = approver.create_request(
             plan_id="plan-123",
             violations=sample_violations,
@@ -57,6 +61,7 @@ class TestRequestCreation:
 
     def test_sets_expiration(self, approver, sample_violations):
         from datetime import datetime
+
         request = approver.create_request(
             plan_id="plan-123",
             violations=sample_violations,
@@ -70,6 +75,7 @@ class TestRequestCreation:
 class TestApprovalRejection:
     def test_approve_updates_status(self, approver, sample_violations):
         from src.governance.models import ApprovalStatus
+
         request = approver.create_request("plan-1", sample_violations, "user-1")
         record = approver.approve(request.approval_id, "user-1", "I acknowledge")
         assert record.status == ApprovalStatus.APPROVED
@@ -81,6 +87,7 @@ class TestApprovalRejection:
 
     def test_reject_updates_status(self, approver, sample_violations):
         from src.governance.models import ApprovalStatus
+
         request = approver.create_request("plan-1", sample_violations, "user-1")
         record = approver.reject(request.approval_id, "user-1", "Too risky")
         assert record.status == ApprovalStatus.REJECTED
@@ -92,9 +99,8 @@ class TestApprovalRejection:
 
     def test_approve_expired_raises(self, approver, sample_violations):
         from src.governance.approver import ApprovalExpiredError
-        request = approver.create_request(
-            "plan-1", sample_violations, "user-1", timeout_seconds=1
-        )
+
+        request = approver.create_request("plan-1", sample_violations, "user-1", timeout_seconds=1)
         time.sleep(1.1)
         with pytest.raises(ApprovalExpiredError):
             approver.approve(request.approval_id, "user-1", "ack")
@@ -104,13 +110,17 @@ class TestSelfApproval:
     def test_self_approval_blocked_when_disabled(self, approver_no_self, sample_violations):
         """Same user cannot approve their own request when allow_self_approval=False."""
         from src.governance.approver import ApproverMismatchError
+
         request = approver_no_self.create_request("plan-1", sample_violations, "user-1")
         with pytest.raises(ApproverMismatchError):
             approver_no_self.approve(request.approval_id, "user-1", "ack")
 
-    def test_different_user_can_approve_when_self_disabled(self, approver_no_self, sample_violations):
+    def test_different_user_can_approve_when_self_disabled(
+        self, approver_no_self, sample_violations
+    ):
         """Different user can approve when allow_self_approval=False."""
         from src.governance.models import ApprovalStatus
+
         request = approver_no_self.create_request("plan-1", sample_violations, "user-1")
         record = approver_no_self.approve(request.approval_id, "user-2", "ack")
         assert record.status == ApprovalStatus.APPROVED
@@ -118,6 +128,7 @@ class TestSelfApproval:
     def test_same_user_can_approve_when_allowed(self, approver, sample_violations):
         """Same user can approve their own request when allow_self_approval=True."""
         from src.governance.models import ApprovalStatus
+
         request = approver.create_request("plan-1", sample_violations, "user-1")
         record = approver.approve(request.approval_id, "user-1", "ack")
         assert record.status == ApprovalStatus.APPROVED

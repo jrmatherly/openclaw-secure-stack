@@ -30,10 +30,7 @@ def compute_trust_score(
     author_score = max(0, min(100, author_reputation))
 
     overall = int(
-        author_score * 0.4
-        + download_score * 0.2
-        + review_score * 0.2
-        + recency_score * 0.2
+        author_score * 0.4 + download_score * 0.2 + review_score * 0.2 + recency_score * 0.2
     )
     overall = max(0, min(100, overall))
 

@@ -184,14 +184,30 @@ class TestPlannedAction:
         tc = ToolCall(name="test", arguments={})
 
         # Valid bounds
-        PlannedAction(sequence=0, tool_call=tc, category=IntentCategory.UNKNOWN, resources=[], risk_score=0)
-        PlannedAction(sequence=0, tool_call=tc, category=IntentCategory.UNKNOWN, resources=[], risk_score=100)
+        PlannedAction(
+            sequence=0, tool_call=tc, category=IntentCategory.UNKNOWN, resources=[], risk_score=0
+        )
+        PlannedAction(
+            sequence=0, tool_call=tc, category=IntentCategory.UNKNOWN, resources=[], risk_score=100
+        )
 
         # Invalid bounds
         with pytest.raises(ValidationError):
-            PlannedAction(sequence=0, tool_call=tc, category=IntentCategory.UNKNOWN, resources=[], risk_score=-1)
+            PlannedAction(
+                sequence=0,
+                tool_call=tc,
+                category=IntentCategory.UNKNOWN,
+                resources=[],
+                risk_score=-1,
+            )
         with pytest.raises(ValidationError):
-            PlannedAction(sequence=0, tool_call=tc, category=IntentCategory.UNKNOWN, resources=[], risk_score=101)
+            PlannedAction(
+                sequence=0,
+                tool_call=tc,
+                category=IntentCategory.UNKNOWN,
+                resources=[],
+                risk_score=101,
+            )
 
 
 class TestRiskAssessment:

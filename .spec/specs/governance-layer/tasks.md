@@ -13,12 +13,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 1. Foundation: Models & Database
 
 #### 1.1 Create Governance Models
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** None
 
 **TDD Steps:**
+
 1. **RED:** Write tests for all Pydantic models
+
    ```python
    # tests/unit/test_governance_models.py
    import pytest
@@ -55,10 +58,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            # actions must be ordered 0, 1, 2, ...
            ...
    ```
+
 2. **GREEN:** Implement all models in `src/governance/models.py`
 3. **REFACTOR:** Extract common validation logic if needed
 
 **Acceptance Criteria:**
+
 - [ ] All enums defined with correct values
 - [ ] All models frozen (immutable)
 - [ ] Model validation enforces invariants
@@ -67,12 +72,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 1.2 Create GovernanceDB
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 1.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for database operations
+
    ```python
    # tests/unit/test_governance_db.py
    import pytest
@@ -105,10 +113,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = db.fetch_one("SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",))
            assert result is not None
    ```
+
 2. **GREEN:** Implement `GovernanceDB` with schema initialization
 3. **REFACTOR:** Extract schema DDL to separate file if large
 
 **Acceptance Criteria:**
+
 - [ ] WAL mode enabled
 - [ ] All tables and indexes created
 - [ ] Parameterized queries work correctly
@@ -119,12 +129,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 2. Core Pipeline: Classification
 
 #### 2.1 Implement IntentClassifier - Tool Extraction
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 1.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for tool call extraction
+
    ```python
    # tests/unit/test_classifier.py
    class TestToolExtraction:
@@ -152,10 +165,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            tools = classifier._extract_tool_calls(body)
            assert len(tools) == 1
    ```
+
 2. **GREEN:** Implement `_extract_tool_calls` method
 3. **REFACTOR:** Handle edge cases gracefully
 
 **Acceptance Criteria:**
+
 - [ ] Extracts tools from OpenAI format
 - [ ] Handles malformed input gracefully
 - [ ] Returns empty list for no tools
@@ -163,12 +178,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 2.2 Implement IntentClassifier - Category Mapping
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 2.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for category mapping
+
    ```python
    class TestCategoryMapping:
        def test_known_tool_mapped(self, classifier):
@@ -186,10 +204,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            # Verify patterns config covers all non-UNKNOWN categories
            ...
    ```
+
 2. **GREEN:** Implement `_categorize_tool` with pattern loading
 3. **REFACTOR:** Optimize pattern matching if needed
 
 **Acceptance Criteria:**
+
 - [ ] Maps known tools to correct categories
 - [ ] Returns UNKNOWN for unrecognized tools
 - [ ] Loads patterns from config file
@@ -197,12 +217,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 2.3 Implement IntentClassifier - Argument Analysis
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 2.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for sensitive pattern detection
+
    ```python
    class TestArgumentAnalysis:
        def test_detects_sensitive_path(self, classifier):
@@ -221,10 +244,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            signals = classifier._analyze_arguments({"config": {"file": "/etc/shadow"}})
            assert len(signals) > 0
    ```
+
 2. **GREEN:** Implement `_analyze_arguments` with regex patterns
 3. **REFACTOR:** Extract pattern matching to helper
 
 **Acceptance Criteria:**
+
 - [ ] Detects sensitive paths
 - [ ] Detects external URLs
 - [ ] Handles nested arguments
@@ -232,12 +257,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 2.4 Implement IntentClassifier - Full Classification
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 2.1, 2.2, 2.3
 
 **TDD Steps:**
+
 1. **RED:** Write tests for full classification flow
+
    ```python
    class TestClassify:
        def test_classify_returns_intent(self, classifier):
@@ -263,10 +291,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = benchmark(classifier.classify, body)
            assert result.stats.mean < 0.010  # 10ms
    ```
+
 2. **GREEN:** Implement `classify` method orchestrating sub-methods
 3. **REFACTOR:** Optimize hot paths
 
 **Acceptance Criteria:**
+
 - [ ] Returns complete Intent object
 - [ ] Calculates confidence score
 - [ ] Completes within 10ms for 10 tools
@@ -276,12 +306,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 3. Core Pipeline: Plan Generation
 
 #### 3.1 Implement PlanGenerator - Action Building
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 1.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for action building
+
    ```python
    # tests/unit/test_planner.py
    class TestActionBuilding:
@@ -300,10 +333,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            actions = planner._build_actions([ToolCall(name="delete_file", arguments={})], [])
            assert actions[0].risk_score > 0
    ```
+
 2. **GREEN:** Implement `_build_actions`
 3. **REFACTOR:** Extract risk calculation
 
 **Acceptance Criteria:**
+
 - [ ] Actions have sequential numbers
 - [ ] Categories assigned from signals
 - [ ] Risk scores calculated
@@ -311,12 +346,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 3.2 Implement PlanGenerator - Resource Extraction
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 3.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for resource extraction
+
    ```python
    class TestResourceExtraction:
        def test_extracts_file_path(self, planner):
@@ -334,10 +372,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            resources = planner._extract_resources(tc)
            assert resources[0].operation == "write"
    ```
+
 2. **GREEN:** Implement `_extract_resources`
 3. **REFACTOR:** Add more resource types as needed
 
 **Acceptance Criteria:**
+
 - [ ] Extracts file paths
 - [ ] Extracts URLs
 - [ ] Determines operation type
@@ -345,12 +385,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 3.3 Implement PlanGenerator - Risk Assessment
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 3.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for risk assessment
+
    ```python
    class TestRiskAssessment:
        def test_calculates_overall_score(self, planner):
@@ -373,10 +416,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            assessment = planner._assess_risk(extreme)
            assert assessment.overall_score == 100
    ```
+
 2. **GREEN:** Implement `_assess_risk`
 3. **REFACTOR:** Make risk calculation configurable
 
 **Acceptance Criteria:**
+
 - [ ] Score in range [0, 100]
 - [ ] Risk level determined
 - [ ] Factors identified
@@ -385,12 +430,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 3.4 Implement PlanGenerator - Full Generation
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 3.1, 3.2, 3.3
 
 **TDD Steps:**
+
 1. **RED:** Write tests for full plan generation
+
    ```python
    class TestGenerate:
        def test_generates_plan_with_uuid(self, planner):
@@ -411,10 +459,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            plan = planner.generate(empty)
            assert plan.actions == []
    ```
+
 2. **GREEN:** Implement `generate` method
 3. **REFACTOR:** Ensure immutability
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid UUID plan_id
 - [ ] Computes request_hash
 - [ ] Includes session context
@@ -425,12 +475,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 4. Core Pipeline: Policy Validation
 
 #### 4.1 Implement PolicyValidator - Rule Loading
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 1.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for rule loading
+
    ```python
    # tests/unit/test_validator.py
    class TestRuleLoading:
@@ -455,10 +508,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            with pytest.raises(ConfigurationError):
                PolicyValidator(str(path))
    ```
+
 2. **GREEN:** Implement constructor with rule loading
 3. **REFACTOR:** Add schema validation
 
 **Acceptance Criteria:**
+
 - [ ] Loads policies from JSON
 - [ ] Sorts by priority
 - [ ] Validates format
@@ -466,12 +521,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 4.2 Implement PolicyValidator - Action Policies
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 4.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for action policy evaluation
+
    ```python
    class TestActionPolicies:
        def test_deny_blocks_action(self, validator):
@@ -490,10 +548,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            # Should have warning-level violation
            assert any(v.severity == Severity.MEDIUM for v in violations)
    ```
+
 2. **GREEN:** Implement `_check_action_policies`
 3. **REFACTOR:** Extract condition matching
 
 **Acceptance Criteria:**
+
 - [ ] Deny policies create violations
 - [ ] Allow policies short-circuit
 - [ ] Require_approval creates warning violations
@@ -501,12 +561,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 4.3 Implement PolicyValidator - Resource Policies
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 4.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for resource policy evaluation
+
    ```python
    class TestResourcePolicies:
        def test_blocks_external_url(self, validator):
@@ -524,10 +587,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            violations = validator._check_resource_policies(action)
            assert len(violations) > 0
    ```
+
 2. **GREEN:** Implement `_check_resource_policies`
 3. **REFACTOR:** Compile regex patterns once
 
 **Acceptance Criteria:**
+
 - [ ] Matches URL patterns
 - [ ] Matches file path patterns
 - [ ] Handles regex conditions
@@ -535,12 +600,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 4.4 Implement PolicyValidator - Sequence Policies
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 4.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for sequence policy evaluation
+
    ```python
    class TestSequencePolicies:
        def test_detects_forbidden_sequence(self, validator):
@@ -573,10 +641,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            violations = validator._check_sequence_policies(plan)
            assert len(violations) == 0
    ```
+
 2. **GREEN:** Implement `_check_sequence_policies` with sliding window
 3. **REFACTOR:** Optimize for large action lists
 
 **Acceptance Criteria:**
+
 - [ ] Detects forbidden sequences
 - [ ] Respects window size
 - [ ] Order-sensitive matching
@@ -584,12 +654,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 4.5 Implement PolicyValidator - Rate Policies
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 4.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for rate policy evaluation
+
    ```python
    class TestRatePolicies:
        def test_blocks_when_limit_exceeded(self, validator):
@@ -606,10 +679,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            violations = validator._check_rate_policies(None)
            assert len(violations) == 0
    ```
+
 2. **GREEN:** Implement `_check_rate_policies`
 3. **REFACTOR:** Support per-minute rates
 
 **Acceptance Criteria:**
+
 - [ ] Enforces max_actions_per_session
 - [ ] Handles missing session
 - [ ] Supports multiple rate types
@@ -617,12 +692,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 4.6 Implement PolicyValidator - Full Validation
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 4.2, 4.3, 4.4, 4.5
 
 **TDD Steps:**
+
 1. **RED:** Write tests for full validation
+
    ```python
    class TestValidate:
        def test_returns_validation_result(self, validator):
@@ -650,10 +728,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = benchmark(validator.validate, plan)
            assert result.stats.mean < 0.020
    ```
+
 2. **GREEN:** Implement `validate` method
 3. **REFACTOR:** Early exit on blocking violations
 
 **Acceptance Criteria:**
+
 - [ ] Returns ValidationResult
 - [ ] Correct decision based on violations
 - [ ] Completes within 20ms
@@ -663,12 +743,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 5. Storage & Tokens
 
 #### 5.1 Implement PlanStore - Storage
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 1.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for plan storage
+
    ```python
    # tests/unit/test_store.py
    class TestPlanStorage:
@@ -691,10 +774,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            plan_id, _ = store.store(ExecutionPlan(...))
            assert store.get_current_sequence(plan_id) == 0
    ```
+
 2. **GREEN:** Implement `store` and `lookup`
 3. **REFACTOR:** Add expiration cleanup
 
 **Acceptance Criteria:**
+
 - [ ] Stores plan in database
 - [ ] Returns plan_id and token
 - [ ] Lookup retrieves stored plan
@@ -703,12 +788,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 5.2 Implement PlanStore - Token Signing
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 5.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for token security
+
    ```python
    class TestTokenSigning:
        def test_token_format(self, store):
@@ -740,10 +828,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            invalid = "totally.invalid"
            # Use timing assertions
    ```
+
 2. **GREEN:** Implement `_issue_token` and `verify_token` with HMAC
 3. **REFACTOR:** Use `hmac.compare_digest`
 
 **Acceptance Criteria:**
+
 - [ ] HMAC-SHA256 signing
 - [ ] Constant-time comparison
 - [ ] Expiration detection
@@ -751,12 +841,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 5.3 Implement PlanStore - Sequence Tracking
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 5.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for sequence tracking
+
    ```python
    class TestSequenceTracking:
        def test_advance_increments(self, store):
@@ -775,10 +868,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            with pytest.raises(PlanNotFoundError):
                store.advance_sequence("nonexistent")
    ```
+
 2. **GREEN:** Implement `advance_sequence` and `get_current_sequence`
 3. **REFACTOR:** Add retry count tracking
 
 **Acceptance Criteria:**
+
 - [ ] Advances sequence correctly
 - [ ] Persists across lookups
 - [ ] Handles missing plan
@@ -788,12 +883,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 6. Approval Flow
 
 #### 6.1 Implement ApprovalGate - Request Creation
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 1.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for approval request creation
+
    ```python
    # tests/unit/test_approver.py
    class TestRequestCreation:
@@ -814,10 +912,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            requested = datetime.fromisoformat(request.requested_at)
            assert expires > requested
    ```
+
 2. **GREEN:** Implement `create_request`
 3. **REFACTOR:** Extract timestamp handling
 
 **Acceptance Criteria:**
+
 - [ ] Creates unique approval_id
 - [ ] Stores original request
 - [ ] Sets expiration time
@@ -825,12 +925,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 6.2 Implement ApprovalGate - Approval/Rejection
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 6.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for approval/rejection
+
    ```python
    class TestApprovalRejection:
        def test_approve_updates_status(self, approver):
@@ -858,10 +961,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            with pytest.raises(ApprovalExpiredError):
                approver.approve(request.approval_id, "user-1", "ack")
    ```
+
 2. **GREEN:** Implement `approve` and `reject`
 3. **REFACTOR:** Extract status transition logic
 
 **Acceptance Criteria:**
+
 - [ ] Updates status correctly
 - [ ] Stores acknowledgment/reason
 - [ ] Rejects expired requests
@@ -869,12 +974,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 6.3 Implement ApprovalGate - Self-Approval Validation
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 6.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for self-approval validation
+
    ```python
    class TestSelfApproval:
        def test_approver_must_match_requester(self, approver):
@@ -892,10 +1000,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            record = approver_no_self_check.approve(request.approval_id, "admin", "ack")
            assert record.status == ApprovalStatus.APPROVED
    ```
+
 2. **GREEN:** Implement `_validate_self_approval`
 3. **REFACTOR:** Make configurable
 
 **Acceptance Criteria:**
+
 - [ ] Validates approver matches requester
 - [ ] Configurable via settings
 - [ ] Clear error on mismatch
@@ -905,12 +1015,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 7. Session Management
 
 #### 7.1 Implement SessionManager - CRUD
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 1.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for session CRUD
+
    ```python
    # tests/unit/test_session.py
    class TestSessionCRUD:
@@ -935,10 +1048,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            updated = session_mgr.get_or_create("sess-1")
            assert updated.risk_accumulator == 30
    ```
+
 2. **GREEN:** Implement `get_or_create` and `record_action`
 3. **REFACTOR:** Batch updates
 
 **Acceptance Criteria:**
+
 - [ ] Creates new sessions
 - [ ] Retrieves existing sessions
 - [ ] Tracks action count and risk
@@ -946,12 +1061,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 7.2 Implement SessionManager - History & Cleanup
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 7.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for history and cleanup
+
    ```python
    class TestHistoryCleanup:
        def test_get_history(self, session_mgr):
@@ -973,10 +1091,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            assert count == 1
            assert session_mgr.get_or_create("old-sess").action_count == 0  # New session
    ```
+
 2. **GREEN:** Implement `get_history` and `cleanup_expired`
 3. **REFACTOR:** Add background cleanup
 
 **Acceptance Criteria:**
+
 - [ ] Returns history with limit
 - [ ] Cleans up expired sessions
 - [ ] Returns cleanup count
@@ -986,12 +1106,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 8. Execution Enforcement
 
 #### 8.1 Implement GovernanceEnforcer - Token Verification
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 5.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for enforcement token verification
+
    ```python
    # tests/unit/test_enforcer.py
    class TestTokenVerification:
@@ -1017,10 +1140,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = enforcer.verify(mock_request, plan_id, token)
            assert result.allowed is True
    ```
+
 2. **GREEN:** Implement token verification in `verify`
 3. **REFACTOR:** Extract error messages
 
 **Acceptance Criteria:**
+
 - [ ] Blocks missing headers
 - [ ] Blocks invalid tokens
 - [ ] Blocks expired tokens
@@ -1029,12 +1154,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 8.2 Implement GovernanceEnforcer - Action Matching
+
 **Type:** Unit
 **Estimated Effort:** M
 **Dependencies:** 8.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for action matching
+
    ```python
    class TestActionMatching:
        def test_matches_expected_action(self, enforcer):
@@ -1061,10 +1189,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            assert result.blocked is True
            assert "sequence" in result.reason.lower()
    ```
+
 2. **GREEN:** Implement `_extract_action` and `_match_action`
 3. **REFACTOR:** Handle partial matches
 
 **Acceptance Criteria:**
+
 - [ ] Matches planned actions
 - [ ] Blocks unplanned actions
 - [ ] Enforces sequence order
@@ -1072,12 +1202,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 8.3 Implement GovernanceEnforcer - Retry Handling
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 8.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for retry handling
+
    ```python
    class TestRetryHandling:
        def test_retry_same_action_allowed(self, enforcer):
@@ -1105,10 +1238,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = enforcer.verify(request1, plan_id, token)
            assert result.allowed is True
    ```
+
 2. **GREEN:** Implement `_is_retry` and retry counting
 3. **REFACTOR:** Make retry limit configurable
 
 **Acceptance Criteria:**
+
 - [ ] Allows bounded retries
 - [ ] Blocks after limit exceeded
 - [ ] Advances sequence correctly
@@ -1118,12 +1253,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 9. Orchestration
 
 #### 9.1 Implement GovernanceMiddleware - Pipeline
+
 **Type:** Unit
 **Estimated Effort:** L
 **Dependencies:** 2.4, 3.4, 4.6, 5.1, 6.1, 7.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for middleware pipeline
+
    ```python
    # tests/unit/test_governance_middleware.py
    class TestMiddlewarePipeline:
@@ -1150,10 +1288,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = await middleware_with_failing_classifier.evaluate(mock_request, {})
            assert result.decision == GovernanceDecision.BLOCK
    ```
+
 2. **GREEN:** Implement `evaluate` method orchestrating all components
 3. **REFACTOR:** Add metrics/timing
 
 **Acceptance Criteria:**
+
 - [ ] Orchestrates full pipeline
 - [ ] Returns correct decisions
 - [ ] Fail-closed on errors
@@ -1161,12 +1301,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 9.2 Implement GovernanceMiddleware - Audit Logging
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** 9.1
 
 **TDD Steps:**
+
 1. **RED:** Write tests for audit logging
+
    ```python
    class TestAuditLogging:
        def test_logs_allow_decision(self, middleware, mock_audit_logger):
@@ -1191,10 +1334,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            if "token" in event.details:
                assert len(event.details["token"]) <= 8  # Redacted
    ```
+
 2. **GREEN:** Implement `_log_decision`
 3. **REFACTOR:** Extract log formatting
 
 **Acceptance Criteria:**
+
 - [ ] Logs all decision types
 - [ ] Includes plan_id
 - [ ] Redacts sensitive data
@@ -1204,12 +1349,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 10. API & Integration
 
 #### 10.1 Implement GovernanceAPI Endpoints
+
 **Type:** Integration
 **Estimated Effort:** M
 **Dependencies:** 6.2
 
 **TDD Steps:**
+
 1. **RED:** Write tests for API endpoints
+
    ```python
    # tests/integration/test_governance_api.py
    class TestGovernanceAPI:
@@ -1241,10 +1389,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            response = client.get("/governance/approvals/nonexistent")
            assert response.status_code == 404
    ```
+
 2. **GREEN:** Implement `create_governance_router`
 3. **REFACTOR:** Add request validation
 
 **Acceptance Criteria:**
+
 - [ ] GET returns approval status
 - [ ] POST approve works
 - [ ] POST reject works
@@ -1253,12 +1403,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 10.2 Integrate with Proxy App
+
 **Type:** Integration
 **Estimated Effort:** L
 **Dependencies:** 9.1, 8.3, 10.1
 
 **TDD Steps:**
+
 1. **RED:** Write integration tests for proxy
+
    ```python
    # tests/integration/test_governance_flow.py
    class TestGovernanceProxyIntegration:
@@ -1300,10 +1453,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            response = client.post("/skills/read_file")
            assert response.status_code == 403
    ```
+
 2. **GREEN:** Modify `create_app` and `proxy` handler
 3. **REFACTOR:** Extract governance handling
 
 **Acceptance Criteria:**
+
 - [ ] ALLOW → forward with headers
 - [ ] BLOCK → 403 with violations
 - [ ] REQUIRE_APPROVAL → 202
@@ -1314,12 +1469,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 11. Configuration
 
 #### 11.1 Create Configuration Files
+
 **Type:** Unit
 **Estimated Effort:** S
 **Dependencies:** None
 
 **TDD Steps:**
+
 1. **RED:** Write validation tests
+
    ```python
    # tests/unit/test_config.py
    def test_governance_settings_schema():
@@ -1344,10 +1502,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
        assert "tool_categories" in patterns
        assert "risk_multipliers" in patterns
    ```
+
 2. **GREEN:** Create config files with valid schemas
 3. **REFACTOR:** Document config options
 
 **Acceptance Criteria:**
+
 - [ ] All config files valid
 - [ ] Schemas documented
 - [ ] Default values sensible
@@ -1357,12 +1517,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ### 12. End-to-End & Security
 
 #### 12.1 E2E: Full Governance Flow
+
 **Type:** E2E
 **Estimated Effort:** L
 **Dependencies:** 10.2
 
 **TDD Steps:**
+
 1. **RED:** Write E2E test
+
    ```python
    # tests/integration/test_e2e_governance.py
    class TestE2EGovernance:
@@ -1392,10 +1555,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            })
            assert r3.status_code == 200
    ```
+
 2. **GREEN:** Ensure all components work together
 3. **REFACTOR:** Add more scenarios
 
 **Acceptance Criteria:**
+
 - [ ] Full allow flow works
 - [ ] Full approval flow works
 - [ ] End-to-end timing acceptable
@@ -1403,12 +1568,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 12.2 Security: Token Tampering
+
 **Type:** Security
 **Estimated Effort:** M
 **Dependencies:** 5.2
 
 **TDD Steps:**
+
 1. **RED:** Write security tests
+
    ```python
    # tests/security/test_token_security.py
    class TestTokenTampering:
@@ -1433,10 +1601,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            result = store.verify_token(mixed)
            assert result.valid is False
    ```
+
 2. **GREEN:** Ensure HMAC verification catches tampering
 3. **REFACTOR:** Add more attack vectors
 
 **Acceptance Criteria:**
+
 - [ ] Payload tampering detected
 - [ ] Signature reuse blocked
 - [ ] Timing attacks mitigated
@@ -1444,12 +1614,15 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 ---
 
 #### 12.3 Security: Self-Approval Bypass
+
 **Type:** Security
 **Estimated Effort:** S
 **Dependencies:** 6.3
 
 **TDD Steps:**
+
 1. **RED:** Write bypass tests
+
    ```python
    class TestSelfApprovalBypass:
        def test_header_spoofing_blocked(self, approver):
@@ -1464,10 +1637,12 @@ This document breaks down the Governance Layer implementation into TDD-based tas
            with pytest.raises(ApproverMismatchError):
                approver.approve(request.approval_id, None, "ack")
    ```
+
 2. **GREEN:** Ensure validation is robust
 3. **REFACTOR:** Add audit for bypass attempts
 
 **Acceptance Criteria:**
+
 - [ ] Spoofing blocked
 - [ ] Null values handled
 - [ ] Bypass attempts logged
@@ -1476,7 +1651,7 @@ This document breaks down the Governance Layer implementation into TDD-based tas
 
 ## Implementation Order
 
-```
+```text
 Phase 1: Foundation
 [1.1] ──> [1.2]
 

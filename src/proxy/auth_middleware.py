@@ -63,23 +63,27 @@ class AuthMiddleware:
 
         # Token valid — log and forward
         if self.audit_logger:
-            self.audit_logger.log(AuditEvent(
-                event_type=AuditEventType.AUTH_SUCCESS,
-                source_ip=request.client.host if request.client else None,
-                action=f"{request.method} {path}",
-                result="success",
-                risk_level=RiskLevel.INFO,
-            ))
+            self.audit_logger.log(
+                AuditEvent(
+                    event_type=AuditEventType.AUTH_SUCCESS,
+                    source_ip=request.client.host if request.client else None,
+                    action=f"{request.method} {path}",
+                    result="success",
+                    risk_level=RiskLevel.INFO,
+                )
+            )
 
         await self.app(scope, receive, send)
 
     def _log_failure(self, request: Request, reason: str) -> None:
         if self.audit_logger:
-            self.audit_logger.log(AuditEvent(
-                event_type=AuditEventType.AUTH_FAILURE,
-                source_ip=request.client.host if request.client else None,
-                action=f"{request.method} {request.url.path}",
-                result="failure",
-                risk_level=RiskLevel.HIGH,
-                details={"reason": reason},
-            ))
+            self.audit_logger.log(
+                AuditEvent(
+                    event_type=AuditEventType.AUTH_FAILURE,
+                    source_ip=request.client.host if request.client else None,
+                    action=f"{request.method} {request.url.path}",
+                    result="failure",
+                    risk_level=RiskLevel.HIGH,
+                    details={"reason": reason},
+                )
+            )

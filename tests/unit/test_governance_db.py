@@ -22,6 +22,7 @@ class TestGovernanceDBInit:
 
     def test_init_creates_database_file(self, governance_db_path: str):
         from pathlib import Path
+
         from src.governance.db import GovernanceDB
 
         GovernanceDB(governance_db_path)
@@ -58,9 +59,7 @@ class TestGovernanceDBOperations:
                VALUES (?, ?, ?, ?, ?)""",
             ("sess-1", "2024-01-01T00:00:00Z", "2024-01-01T00:00:00Z", 0, 0),
         )
-        result = db.fetch_one(
-            "SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",)
-        )
+        result = db.fetch_one("SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",))
         assert result is not None
         assert result["session_id"] == "sess-1"
 
@@ -132,9 +131,7 @@ class TestGovernancePlansTable:
                 0,
             ),
         )
-        result = db.fetch_one(
-            "SELECT * FROM governance_plans WHERE plan_id = ?", ("plan-123",)
-        )
+        result = db.fetch_one("SELECT * FROM governance_plans WHERE plan_id = ?", ("plan-123",))
         assert result["plan_id"] == "plan-123"
         assert result["current_sequence"] == 0
 
@@ -237,9 +234,7 @@ class TestGovernanceSessionsTable:
                VALUES (?, ?, ?, ?, ?)""",
             ("sess-1", "2024-01-01T00:00:00Z", "2024-01-01T00:00:00Z", 0, 0),
         )
-        result = db.fetch_one(
-            "SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",)
-        )
+        result = db.fetch_one("SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",))
         assert result["action_count"] == 0
 
     def test_update_session_stats(self, db):
@@ -258,9 +253,7 @@ class TestGovernanceSessionsTable:
                WHERE session_id = ?""",
             (30, "2024-01-01T00:05:00Z", "sess-1"),
         )
-        result = db.fetch_one(
-            "SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",)
-        )
+        result = db.fetch_one("SELECT * FROM governance_sessions WHERE session_id = ?", ("sess-1",))
         assert result["action_count"] == 1
         assert result["risk_accumulator"] == 30
 

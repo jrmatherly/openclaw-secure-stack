@@ -10,7 +10,7 @@ Same as the existing stack: **layered sidecar / reverse-proxy** around unmodifie
 
 ## Component Map
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │                 Changes by FR                    │
 ├──────────┬──────────────────────────────────────┤
@@ -44,6 +44,7 @@ Same as the existing stack: **layered sidecar / reverse-proxy** around unmodifie
    - Verify non-root: already `USER 65534`, no change needed
 
 2. **install.sh** — Add `validate_image_hardening()` function after build step:
+
    ```bash
    validate_image_hardening() {
      local image="$1"
@@ -94,6 +95,7 @@ Same as the existing stack: **layered sidecar / reverse-proxy** around unmodifie
 **Design**:
 
 1. **Skill manifest** — Introduce `config/skill-pins.json`:
+
    ```json
    {
      "skill-name": {
@@ -102,9 +104,11 @@ Same as the existing stack: **layered sidecar / reverse-proxy** around unmodifie
      }
    }
    ```
+
    Optional file. If absent, pinning is skipped (fail-open for unpinned skills, but audit log warns).
 
 2. **scanner.py** — Add hash verification step before AST scan:
+
    ```python
    def _verify_pin(self, skill_path: Path, skill_name: str) -> PinResult:
        """Compare SHA-256 of skill file against pinned hash."""
@@ -116,11 +120,13 @@ Same as the existing stack: **layered sidecar / reverse-proxy** around unmodifie
            return PinResult(status="mismatch", expected=expected, actual=actual)
        return PinResult(status="verified")
    ```
+
    A `mismatch` result triggers immediate quarantine without further scanning.
 
 3. **db.py** — `upsert_skill()` already accepts `trust_score`. Ensure `scanner.py` passes the computed score from `trust_score.py` into the upsert call. Currently the score is computed but discarded — wire it through.
 
 **Data model addition**:
+
 ```python
 class PinResult(BaseModel, frozen=True):
     status: Literal["verified", "mismatch", "unpinned"]
@@ -139,6 +145,7 @@ class PinResult(BaseModel, frozen=True):
 **Design**:
 
 1. **manager.py** — Add `enforce_quarantine(skill_name: str) -> None`:
+
    ```python
    def enforce_quarantine(self, skill_name: str) -> None:
        """Raise if skill is quarantined. Called before skill execution."""
@@ -154,6 +161,7 @@ class PinResult(BaseModel, frozen=True):
    ```
 
 2. **QuarantineBlockedError** — New exception in `src/quarantine/manager.py`:
+
    ```python
    class QuarantineBlockedError(Exception):
        def __init__(self, skill_name: str):
@@ -174,6 +182,7 @@ class PinResult(BaseModel, frozen=True):
 **Design**:
 
 1. **Rotation & retention** — Use Python's `logging.handlers.RotatingFileHandler` pattern or implement simply:
+
    ```python
    class AuditLogger:
        def __init__(self, path: Path, max_bytes: int = 10_485_760, backup_count: int = 5):
@@ -188,13 +197,16 @@ class PinResult(BaseModel, frozen=True):
                    src = self._path.with_suffix(f".jsonl.{i}") if i > 0 else self._path
                    ...
    ```
+
    Config via env vars: `AUDIT_LOG_MAX_BYTES`, `AUDIT_LOG_BACKUP_COUNT`.
 
 2. **Tamper detection** — After each write, compute a rolling SHA-256 chain:
+
    ```python
    # Each log line includes prev_hash for chain integrity
    {"timestamp": "...", "event_type": "...", ..., "prev_hash": "sha256-of-previous-line"}
    ```
+
    The audit script (FR-6) validates the chain on each run. If a line's `prev_hash` doesn't match the SHA-256 of the previous line, the chain is broken → tamper alert.
 
 3. **Alerting** — Tamper detection is passive: `scripts/audit.py` validates the hash chain and reports a `critical` finding on breakage. Real-time alerting (webhook/email) is out of scope for v0.1.
@@ -207,7 +219,7 @@ class PinResult(BaseModel, frozen=True):
 
 **Design**: A standalone Python script (no framework dependencies beyond stdlib + existing project deps) that validates security posture.
 
-```
+```text
 scripts/audit.py
 ├── Check: container_hardening()
 │   ├── Non-root user
@@ -237,6 +249,7 @@ scripts/audit.py
 ```
 
 **Interface**:
+
 ```python
 def main() -> int:
     """Run all checks. Return 0 if all pass, 1 if any fail."""
@@ -257,6 +270,7 @@ def main() -> int:
 ```
 
 **Data model**:
+
 ```python
 @dataclass
 class Finding:
@@ -294,13 +308,17 @@ Output: human-readable table + JSON (for CI parsing) controlled by `--format` fl
 **Design**:
 
 1. **Pin base images** — Replace:
+
    ```dockerfile
    FROM python:3.12-slim
    ```
+
    with:
+
    ```dockerfile
    FROM python:3.12-slim@sha256:<digest>
    ```
+
    Same for CoreDNS image. Document the digest update process.
 
 2. **Rebuild strategy** — Add section to README:

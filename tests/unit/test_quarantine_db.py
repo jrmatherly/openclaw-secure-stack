@@ -18,8 +18,11 @@ def test_create_tables(tmp_path: Path) -> None:
 def test_insert_and_retrieve(tmp_path: Path) -> None:
     db = QuarantineDB(str(tmp_path / "test.db"))
     db.upsert_skill(
-        name="test-skill", path="/skills/test",
-        checksum="a" * 64, status="quarantined", findings_json="[]",
+        name="test-skill",
+        path="/skills/test",
+        checksum="a" * 64,
+        status="quarantined",
+        findings_json="[]",
     )
     skill = db.get_skill("test-skill")
     assert skill is not None

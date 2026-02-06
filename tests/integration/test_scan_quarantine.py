@@ -63,9 +63,7 @@ def test_scan_quarantine_override_flow(tmp_path: Path) -> None:
     assert not manager.is_quarantined("bad.js")
 
     # Verify audit events
-    event_types = [
-        c[0][0].event_type for c in mock_logger.log.call_args_list
-    ]
+    event_types = [c[0][0].event_type for c in mock_logger.log.call_args_list]
     assert AuditEventType.SKILL_QUARANTINE in event_types
     assert AuditEventType.SKILL_OVERRIDE in event_types
 

@@ -74,7 +74,8 @@ def test_override_logged(tmp_skill, tmp_path: Path) -> None:
 
     # Find the SKILL_OVERRIDE log call
     override_calls = [
-        call for call in mock_logger.log.call_args_list
+        call
+        for call in mock_logger.log.call_args_list
         if call[0][0].event_type == AuditEventType.SKILL_OVERRIDE
     ]
     assert len(override_calls) == 1
@@ -112,9 +113,9 @@ class TestEnforceQuarantine:
             manager.enforce_quarantine("evil.js")
         # Verify audit event was logged for the block
         block_calls = [
-            c for c in mock_logger.log.call_args_list
-            if c[0][0].event_type == AuditEventType.SKILL_QUARANTINE
-            and "Blocked" in c[0][0].action
+            c
+            for c in mock_logger.log.call_args_list
+            if c[0][0].event_type == AuditEventType.SKILL_QUARANTINE and "Blocked" in c[0][0].action
         ]
         assert len(block_calls) == 1
 
@@ -122,7 +123,10 @@ class TestEnforceQuarantine:
         manager, _ = _make_manager(tmp_path)
         # Insert an active skill directly
         manager.db.upsert_skill(
-            name="good.js", path="/skills/good.js", checksum="a" * 64, status="active",
+            name="good.js",
+            path="/skills/good.js",
+            checksum="a" * 64,
+            status="active",
         )
         manager.enforce_quarantine("good.js")  # should not raise
 

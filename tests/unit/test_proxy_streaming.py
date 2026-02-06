@@ -69,10 +69,12 @@ async def test_non_streaming_request_returns_buffered(app: object) -> None:
                     "Authorization": f"Bearer {TOKEN}",
                     "Content-Type": "application/json",
                 },
-                content=json.dumps({
-                    "model": "gpt-4o-mini",
-                    "messages": [{"role": "user", "content": "Hi"}],
-                }).encode(),
+                content=json.dumps(
+                    {
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": "Hi"}],
+                    }
+                ).encode(),
             )
 
     assert resp.status_code == 200
@@ -83,7 +85,7 @@ async def test_non_streaming_request_returns_buffered(app: object) -> None:
 async def test_streaming_request_returns_sse(app: object) -> None:
     """Streaming requests return text/event-stream."""
     chunks = [
-        b"data: {\"id\":\"chatcmpl-1\",\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\n",
+        b'data: {"id":"chatcmpl-1","choices":[{"delta":{"content":"Hello"}}]}\n\n',
         b"data: [DONE]\n\n",
     ]
 
@@ -112,11 +114,13 @@ async def test_streaming_request_returns_sse(app: object) -> None:
                     "Authorization": f"Bearer {TOKEN}",
                     "Content-Type": "application/json",
                 },
-                content=json.dumps({
-                    "model": "gpt-4o-mini",
-                    "messages": [{"role": "user", "content": "Hi"}],
-                    "stream": True,
-                }).encode(),
+                content=json.dumps(
+                    {
+                        "model": "gpt-4o-mini",
+                        "messages": [{"role": "user", "content": "Hi"}],
+                        "stream": True,
+                    }
+                ).encode(),
             )
 
     assert resp.status_code == 200

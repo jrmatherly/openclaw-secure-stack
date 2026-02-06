@@ -9,7 +9,7 @@
 .spec/steering/
 
 # Serena MCP cache
-.serena/
+.serena/cache/
 
 # Environment and secrets
 .env
@@ -35,3 +35,10 @@ worktrees/
 
 # OS
 .DS_Store
+
+# Node
+plugins/prompt-guard/node_modules/
+
+# Misc
+.scratchpad/
+.local_docs/

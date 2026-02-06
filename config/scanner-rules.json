@@ -36,7 +36,12 @@
     "name": "Node HTTP module usage",
     "severity": "high",
     "category": "network_exfil",
-    "patterns": ["require(\"http\")", "require(\"https\")", "require('http')", "require('https')"],
+    "patterns": [
+      "require(\"http\")",
+      "require(\"https\")",
+      "require('http')",
+      "require('https')"
+    ],
     "description": "Detects usage of Node.js http/https modules"
   },
   {

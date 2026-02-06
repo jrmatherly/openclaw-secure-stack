@@ -27,9 +27,7 @@ def patterns_path(tmp_path: Path) -> str:
                 ".*passwd.*",
                 ".*secret.*",
             ],
-            "external_urls": [
-                "^https?://(?!localhost|127\\.0\\.0\\.1)"
-            ],
+            "external_urls": ["^https?://(?!localhost|127\\.0\\.0\\.1)"],
         },
         "risk_multipliers": {
             "file_read": 1.0,
@@ -216,8 +214,6 @@ class TestArgumentAnalysis:
 
     def test_detects_sensitive_path(self, classifier):
         """Test detection of sensitive file paths."""
-        from src.governance.models import IntentCategory
-
         signals = classifier._analyze_arguments({"path": "/etc/passwd"})
         assert len(signals) > 0
         assert any("sensitive" in s.details.lower() for s in signals if s.details)
@@ -254,9 +250,7 @@ class TestArgumentAnalysis:
 
     def test_list_arguments_analyzed(self, classifier):
         """Test list arguments are analyzed."""
-        signals = classifier._analyze_arguments(
-            {"paths": ["/tmp/safe.txt", "/etc/passwd"]}
-        )
+        signals = classifier._analyze_arguments({"paths": ["/tmp/safe.txt", "/etc/passwd"]})
         assert len(signals) > 0
 
 

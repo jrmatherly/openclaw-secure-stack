@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "scripts"))
 
 from audit import (  # noqa: E402
@@ -13,7 +13,6 @@ from audit import (  # noqa: E402
     documentation,
     log_integrity,
     network_isolation,
-    secret_management,
     skill_security,
 )
 from src.audit.logger import AuditLogger

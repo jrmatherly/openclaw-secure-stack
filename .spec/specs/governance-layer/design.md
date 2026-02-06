@@ -9,6 +9,7 @@ The Governance Layer is a modular security component that slots into the existin
 **Pattern:** Layered Architecture with Pipeline Processing
 
 **Rationale:**
+
 - Consistent with existing proxy → sanitizer → upstream flow
 - Each layer has single responsibility (SRP)
 - Components communicate via well-defined interfaces (ISP)
@@ -16,7 +17,7 @@ The Governance Layer is a modular security component that slots into the existin
 
 ## Component Diagram
 
-```
+```text
                     ┌─────────────────────────────────────────────────────┐
                     │                 GovernanceMiddleware                │
                     │  (Orchestrator - coordinates all governance flow)   │
@@ -47,7 +48,7 @@ The Governance Layer is a modular security component that slots into the existin
 
 ## Data Flow
 
-```
+```text
 Request arrives at proxy
          │
          ▼
@@ -89,12 +90,14 @@ Request arrives at proxy
 **Purpose:** Extract and classify tool calls from request body into intent categories.
 
 **Responsibilities:**
+
 - Parse tool calls from OpenAI-compatible format
 - Match tool names against configurable category mappings
 - Analyze arguments for sensitive patterns
 - Calculate confidence scores
 
 **Interface:**
+
 ```python
 class IntentClassifier:
     def __init__(self, patterns_path: str) -> None: ...
@@ -117,9 +120,11 @@ class IntentClassifier:
 ```
 
 **Dependencies:**
+
 - `config/intent-patterns.json` (loaded at init)
 
 **Error Handling:**
+
 - Missing patterns file: raise `ConfigurationError` at startup
 - Malformed body: return Intent with UNKNOWN category
 - No tool calls: return Intent with empty tool_calls list
@@ -133,12 +138,14 @@ class IntentClassifier:
 **Purpose:** Generate auditable execution plans from classified intents.
 
 **Responsibilities:**
+
 - Create unique plan_id (UUID4)
 - Build ordered PlannedAction sequence
 - Calculate resource access patterns
 - Compute risk assessment
 
 **Interface:**
+
 ```python
 class PlanGenerator:
     def __init__(self, risk_multipliers: dict[str, float] | None = None) -> None: ...
@@ -161,9 +168,11 @@ class PlanGenerator:
 ```
 
 **Dependencies:**
+
 - None (stateless)
 
 **Error Handling:**
+
 - Empty intent: return plan with empty actions
 - Risk calculation overflow: cap at 100
 
@@ -176,12 +185,14 @@ class PlanGenerator:
 **Purpose:** Validate execution plans against configurable policy rules.
 
 **Responsibilities:**
+
 - Load and parse policy rules from config
 - Evaluate rules in priority order
 - Detect sequence policy violations
 - Enforce rate limits via session context
 
 **Interface:**
+
 ```python
 class PolicyValidator:
     def __init__(self, policies_path: str) -> None: ...
@@ -208,9 +219,11 @@ class PolicyValidator:
 ```
 
 **Dependencies:**
+
 - `config/governance-policies.json` (loaded at init)
 
 **Error Handling:**
+
 - Missing policies file: raise `ConfigurationError`
 - Invalid policy format: raise `ConfigurationError` with details
 - No matching rules: return ValidationResult with decision=ALLOW
@@ -224,12 +237,14 @@ class PolicyValidator:
 **Purpose:** Manage human-in-the-loop approval workflow.
 
 **Responsibilities:**
+
 - Create and store approval requests
 - Validate approver identity
 - Handle approval/rejection
 - Manage expiration
 
 **Interface:**
+
 ```python
 class ApprovalGate:
     def __init__(self, db: GovernanceDB, settings: ApprovalSettings) -> None: ...
@@ -262,10 +277,12 @@ class ApprovalGate:
 ```
 
 **Dependencies:**
+
 - `GovernanceDB` (injected)
 - `ApprovalSettings` (from config)
 
 **Error Handling:**
+
 - Request not found: raise `ApprovalNotFoundError`
 - Request expired: raise `ApprovalExpiredError`
 - Approver mismatch: raise `ApproverMismatchError`
@@ -279,12 +296,14 @@ class ApprovalGate:
 **Purpose:** Track multi-turn conversation context for rate limiting and sequence policies.
 
 **Responsibilities:**
+
 - Create or retrieve sessions by ID
 - Track action history per session
 - Accumulate risk scores
 - Handle TTL expiration
 
 **Interface:**
+
 ```python
 class SessionManager:
     def __init__(self, db: GovernanceDB, settings: SessionSettings) -> None: ...
@@ -307,10 +326,12 @@ class SessionManager:
 ```
 
 **Dependencies:**
+
 - `GovernanceDB` (injected)
 - `SessionSettings` (from config)
 
 **Error Handling:**
+
 - Session not found: create new session
 - History limit exceeded: truncate oldest entries
 
@@ -323,12 +344,14 @@ class SessionManager:
 **Purpose:** Persist execution plans and manage plan tokens.
 
 **Responsibilities:**
+
 - Store plans in SQLite
 - Issue HMAC-signed tokens
 - Lookup plans by ID
 - Track sequence progress
 
 **Interface:**
+
 ```python
 class PlanStore:
     def __init__(self, db: GovernanceDB, secret: str, token_ttl: int = 900) -> None: ...
@@ -359,10 +382,12 @@ class PlanStore:
 ```
 
 **Dependencies:**
+
 - `GovernanceDB` (injected)
 - Server secret (from environment)
 
 **Error Handling:**
+
 - Plan not found: return None
 - Token expired: return TokenVerification with expired=True
 - Invalid signature: return TokenVerification with valid=False
@@ -376,12 +401,14 @@ class PlanStore:
 **Purpose:** Validate tool invocations against stored plans at execution time.
 
 **Responsibilities:**
+
 - Extract governance headers from request
 - Verify plan token
 - Validate action matches plan sequence
 - Handle retry semantics
 
 **Interface:**
+
 ```python
 class GovernanceEnforcer:
     def __init__(self, store: PlanStore, settings: EnforcementSettings) -> None: ...
@@ -404,10 +431,12 @@ class GovernanceEnforcer:
 ```
 
 **Dependencies:**
+
 - `PlanStore` (injected)
 - `EnforcementSettings` (from config)
 
 **Error Handling:**
+
 - Missing headers: return blocked with "missing_governance_headers"
 - Invalid token: return blocked with "invalid_token"
 - Expired token: return blocked with "token_expired"
@@ -422,12 +451,14 @@ class GovernanceEnforcer:
 **Purpose:** Coordinate all governance components in the request flow.
 
 **Responsibilities:**
+
 - Orchestrate classification → planning → validation pipeline
 - Inject governance headers on ALLOW
 - Return appropriate HTTP responses
 - Log all decisions to audit trail
 
 **Interface:**
+
 ```python
 class GovernanceMiddleware:
     def __init__(
@@ -452,10 +483,12 @@ class GovernanceMiddleware:
 ```
 
 **Dependencies:**
+
 - All governance components (injected)
 - `AuditLogger` (optional, injected)
 
 **Error Handling:**
+
 - Component failure: return BLOCK (fail-closed)
 - Log errors but don't expose internals
 
@@ -468,12 +501,14 @@ class GovernanceMiddleware:
 **Purpose:** SQLite database operations for all governance state.
 
 **Responsibilities:**
+
 - Manage database connection with WAL mode
 - Provide parameterized query execution
 - Handle schema migrations
 - Support transactional operations
 
 **Interface:**
+
 ```python
 class GovernanceDB:
     def __init__(self, db_path: str) -> None: ...
@@ -500,9 +535,11 @@ class GovernanceDB:
 ```
 
 **Dependencies:**
+
 - SQLite (stdlib)
 
 **Error Handling:**
+
 - Database locked: retry with backoff
 - Schema migration failure: raise `DatabaseError`
 
@@ -515,11 +552,13 @@ class GovernanceDB:
 **Purpose:** FastAPI endpoints for approval management.
 
 **Responsibilities:**
+
 - Expose approval CRUD endpoints
 - Validate request authentication
 - Return appropriate responses
 
 **Interface:**
+
 ```python
 def create_governance_router(approver: ApprovalGate) -> APIRouter:
     """Create FastAPI router for governance endpoints."""
@@ -535,9 +574,11 @@ def create_governance_router(approver: ApprovalGate) -> APIRouter:
 ```
 
 **Dependencies:**
+
 - `ApprovalGate` (injected)
 
 **Error Handling:**
+
 - Not found: return 404
 - Expired: return 410 Gone
 - Approver mismatch: return 403
@@ -603,17 +644,20 @@ class ApprovalStatus(str, Enum):
 All models use `model_config = ConfigDict(frozen=True)` for immutability.
 
 **ExecutionPlan:**
+
 - `plan_id` is UUID4 format
 - `request_hash` is SHA-256 hex (64 chars)
 - `actions` ordered by sequence number (0-indexed, contiguous)
 - `risk_assessment.overall_score` in range [0, 100]
 
 **PolicyRule:**
+
 - `type` in {"action", "resource", "sequence", "rate", "context"}
 - `effect` in {"allow", "deny", "require_approval"}
 - `priority` >= 0 (higher = evaluated first)
 
 **ApprovalRequest:**
+
 - `expires_at` > `requested_at`
 - `status` transitions: PENDING → APPROVED | REJECTED | EXPIRED
 
@@ -809,10 +853,12 @@ async def evaluate(self, request: Request, body: dict[str, object]) -> Governanc
 ## Security Considerations
 
 ### Authentication
+
 - Governance endpoints require existing Bearer token auth
 - Approval endpoints validate user identity from auth context
 
 ### Token Security
+
 - Plan tokens HMAC-SHA256 signed with server secret
 - Constant-time comparison via `hmac.compare_digest()`
 - Token includes: plan_id, issued_at, expires_at
@@ -831,11 +877,13 @@ def _issue_token(self, plan_id: str) -> str:
 ```
 
 ### Data Protection
+
 - No secrets in audit logs (tokens redacted to first 8 chars)
 - SQL injection prevented via parameterized queries
 - Input validation on all policy conditions
 
 ### Audit Trail
+
 - All decisions logged with full context
 - Hash chain integrity from existing AuditLogger
 - New event types for governance actions
@@ -845,6 +893,7 @@ def _issue_token(self, plan_id: str) -> str:
 ## Testing Strategy
 
 ### Unit Tests (Target: 90% coverage)
+
 - `test_classifier.py`: Tool extraction, category mapping, argument analysis
 - `test_planner.py`: Plan generation, risk calculation, resource extraction
 - `test_validator.py`: Policy evaluation, sequence detection, rate limiting
@@ -854,11 +903,13 @@ def _issue_token(self, plan_id: str) -> str:
 - `test_enforcer.py`: Token verification, action matching, retry handling
 
 ### Integration Tests
+
 - `test_governance_flow.py`: Full request → decision flow
 - `test_enforcement_flow.py`: Plan approval → skill execution → validation
 - `test_approval_flow.py`: 202 → approve → retry
 
 ### Security Tests
+
 - Token tampering attempts
 - Sequence manipulation attempts
 - Self-approval bypass attempts
@@ -869,6 +920,7 @@ def _issue_token(self, plan_id: str) -> str:
 ## Configuration Files
 
 ### `config/governance-settings.json`
+
 ```json
 {
   "enabled": true,
@@ -898,6 +950,7 @@ def _issue_token(self, plan_id: str) -> str:
 ```
 
 ### `config/governance-policies.json`
+
 ```json
 [
   {
@@ -958,6 +1011,7 @@ def _issue_token(self, plan_id: str) -> str:
 ```
 
 ### `config/intent-patterns.json`
+
 ```json
 {
   "tool_categories": {
@@ -1081,27 +1135,32 @@ class AuditEventType(str, Enum):
 ## Linus-Style Quality Review
 
 ### 1. Taste - Is it elegant?
+
 - **Yes**: Pipeline architecture mirrors existing proxy flow
 - **Yes**: Single responsibility per component
 - **Yes**: Clean interfaces between layers
 
 ### 2. Complexity - Is it simple?
+
 - **Yes**: Each component does one thing
 - **Watch**: Policy evaluation could get complex - keep rules simple
 - **Watch**: Token format is straightforward (payload.signature)
 
 ### 3. Special Cases - Are edge cases handled?
+
 - **Yes**: Retry semantics handled
 - **Yes**: Expiration handled at multiple levels
 - **Yes**: Fail-closed on errors
 - **Yes**: Missing headers = blocked
 
 ### 4. Data Structures - Are they optimal?
+
 - **Yes**: Frozen Pydantic models for immutability
 - **Yes**: SQLite for durable state (consistent with quarantine)
 - **Yes**: Sequence tracking via simple integer pointer
 
 ### 5. Code Organization - Is it maintainable?
+
 - **Yes**: Follows existing project structure
 - **Yes**: Clear separation of concerns
 - **Yes**: Well-defined interfaces enable testing
@@ -1110,7 +1169,7 @@ class AuditEventType(str, Enum):
 
 ## File Structure Summary
 
-```
+```text
 src/governance/
 ├── __init__.py
 ├── models.py         # All Pydantic models and enums

@@ -1,6 +1,7 @@
 # Technology Stack
 
 ## Architecture
+
 **Type**: Sidecar / Reverse Proxy
 **Language**: Python 3.12+
 **Module System**: Standard Python packages
@@ -8,6 +9,7 @@
 **Build Tool**: Hatchling + uv
 
 ## Core Technologies
+
 - **Runtime**: Python 3.12+ (CPython)
 - **Language**: Python with type annotations
 - **Framework**: FastAPI + Starlette (ASGI middleware)
@@ -20,13 +22,16 @@
 - **DNS Filtering**: CoreDNS (egress sidecar)
 
 ## Development Environment
+
 - **Runtime Version**: Python >= 3.12
 - **Package Manager**: uv (fast Python package manager)
 - **Testing Framework**: pytest
 - **Linting**: ruff
 
 ## Dependencies
+
 ### Production Dependencies
+
 - `fastapi` — ASGI web framework
 - `uvicorn` — ASGI server
 - `httpx` — async HTTP client for proxying
@@ -37,12 +42,14 @@
 - `tree-sitter-typescript` — TypeScript grammar for tree-sitter
 
 ### Development Dependencies
+
 - `pytest` + `pytest-asyncio` + `pytest-cov` — testing
 - `ruff` — linting and formatting
 - `mypy` — static type checking
 - `pytest-httpx` — httpx mocking
 
 ## Development Commands
+
 ```bash
 # Install dependencies
 uv sync
@@ -70,12 +77,14 @@ uv run uvicorn src.proxy.app:create_app_from_env --factory --reload
 ```
 
 ## Quality Assurance
+
 - **Linting**: ruff (line-length 100, Python 3.12 target)
 - **Type Checking**: mypy with strict mode
 - **Testing**: 112 tests across unit, integration, and security suites
 - **Security**: OWASP Top 10 aligned, constant-time comparisons, no hardcoded secrets
 
 ## Deployment Configuration
+
 - **Containerization**: Docker with multi-stage build (distroless Python runtime)
 - **Orchestration**: Docker Compose with security hardening
 - **Build Process**: `docker compose build` or `install.sh`

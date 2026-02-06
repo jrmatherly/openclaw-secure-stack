@@ -13,7 +13,6 @@ from src.governance.models import (
     ExecutionPlan,
     IntentCategory,
     PlannedAction,
-    ResourceAccess,
     RiskAssessment,
     ToolCall,
 )

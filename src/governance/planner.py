@@ -136,14 +136,10 @@ class PlanGenerator:
             if isinstance(value, str):
                 # Check for file paths
                 if key_lower in self.PATH_KEYS or self._looks_like_path(value):
-                    resources.append(
-                        ResourceAccess(type="file", path=value, operation=operation)
-                    )
+                    resources.append(ResourceAccess(type="file", path=value, operation=operation))
                 # Check for URLs
                 elif key_lower in self.URL_KEYS or self._looks_like_url(value):
-                    resources.append(
-                        ResourceAccess(type="url", path=value, operation=operation)
-                    )
+                    resources.append(ResourceAccess(type="url", path=value, operation=operation))
 
             elif isinstance(value, dict):
                 self._extract_from_dict(value, resources, operation)

@@ -14,15 +14,27 @@ from src.sanitizer.sanitizer import PromptInjectionError, PromptSanitizer
 @pytest.fixture
 def rules_path(tmp_path: Path) -> str:
     rules = [
-        {"id": "PI-001", "name": "Ignore instructions",
-         "pattern": "(?i)ignore\\s+(all\\s+)?previous\\s+instructions",
-         "action": "strip", "description": "test"},
-        {"id": "PI-002", "name": "Role switching",
-         "pattern": "(?i)disregard\\s+(your|all)\\s+rules",
-         "action": "strip", "description": "test"},
-        {"id": "PI-003", "name": "Developer mode",
-         "pattern": "(?i)developer\\s+mode",
-         "action": "reject", "description": "test"},
+        {
+            "id": "PI-001",
+            "name": "Ignore instructions",
+            "pattern": "(?i)ignore\\s+(all\\s+)?previous\\s+instructions",
+            "action": "strip",
+            "description": "test",
+        },
+        {
+            "id": "PI-002",
+            "name": "Role switching",
+            "pattern": "(?i)disregard\\s+(your|all)\\s+rules",
+            "action": "strip",
+            "description": "test",
+        },
+        {
+            "id": "PI-003",
+            "name": "Developer mode",
+            "pattern": "(?i)developer\\s+mode",
+            "action": "reject",
+            "description": "test",
+        },
     ]
     path = tmp_path / "rules.json"
     path.write_text(json.dumps(rules))

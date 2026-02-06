@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import json
-import uuid
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -76,7 +74,9 @@ def settings() -> dict[str, Any]:
 
 
 @pytest.fixture
-def middleware(governance_db_path: str, secret: str, policy_path: str, patterns_path: str, settings: dict):
+def middleware(
+    governance_db_path: str, secret: str, policy_path: str, patterns_path: str, settings: dict
+):
     from src.governance.middleware import GovernanceMiddleware
 
     mw = GovernanceMiddleware(
@@ -134,7 +134,12 @@ class TestEvaluate:
 
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "delete_file", "arguments": {"path": "/tmp/file"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "delete_file", "arguments": {"path": "/tmp/file"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -147,7 +152,12 @@ class TestEvaluate:
 
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/safe.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/safe.txt"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -159,7 +169,12 @@ class TestEvaluate:
 
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "execute_code", "arguments": {"code": "print('hi')"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "execute_code", "arguments": {"code": "print('hi')"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -172,7 +187,12 @@ class TestPlanGeneration:
     def test_generates_plan_for_allowed_request(self, middleware):
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -183,7 +203,12 @@ class TestPlanGeneration:
     def test_plan_includes_session_binding(self, middleware):
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}},
+                    }
+                ]
             },
             session_id="sess-123",
             user_id="user-1",
@@ -196,7 +221,12 @@ class TestApprovalFlow:
     def test_creates_approval_for_risky_action(self, middleware):
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "execute_code", "arguments": {"code": "rm -rf /"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "execute_code", "arguments": {"code": "rm -rf /"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -208,7 +238,12 @@ class TestApprovalFlow:
 
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "execute_code", "arguments": {"code": "test"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "execute_code", "arguments": {"code": "test"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -228,7 +263,12 @@ class TestEnforcement:
         # First, get a plan
         eval_result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -260,7 +300,12 @@ class TestSessionManagement:
     def test_creates_session_on_first_request(self, middleware):
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",
@@ -272,7 +317,12 @@ class TestSessionManagement:
         # First request
         result1 = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/a.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/a.txt"}},
+                    }
+                ]
             },
             session_id="sess-abc",
             user_id="user-1",
@@ -281,7 +331,12 @@ class TestSessionManagement:
         # Second request with same session
         result2 = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/b.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/b.txt"}},
+                    }
+                ]
             },
             session_id="sess-abc",
             user_id="user-1",
@@ -296,7 +351,12 @@ class TestEvaluationResult:
 
         result = middleware.evaluate(
             request_body={
-                "tools": [{"type": "function", "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}}}]
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {"name": "read_file", "arguments": {"path": "/tmp/test.txt"}},
+                    }
+                ]
             },
             session_id=None,
             user_id="user-1",

@@ -201,7 +201,7 @@ class TestProxyQuarantineEnforcement:
         mock_quarantine_manager.enforce_quarantine.return_value = None
 
         async def mock_request(*args, **kwargs):
-            return httpx.Response(status_code=200, content=b'{}')
+            return httpx.Response(status_code=200, content=b"{}")
 
         transport = ASGITransport(app=app_with_quarantine)  # type: ignore[arg-type]
         async with AsyncClient(transport=transport, base_url="http://test") as client:

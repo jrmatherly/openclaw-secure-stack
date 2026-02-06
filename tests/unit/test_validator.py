@@ -119,7 +119,6 @@ class TestActionPolicies:
         from src.governance.models import (
             IntentCategory,
             PlannedAction,
-            ResourceAccess,
             ToolCall,
         )
 
@@ -228,7 +227,9 @@ class TestResourcePolicies:
             sequence=0,
             tool_call=ToolCall(name="http_get", arguments={}),
             category=IntentCategory.NETWORK_REQUEST,
-            resources=[ResourceAccess(type="url", path="http://localhost:8080/api", operation="fetch")],
+            resources=[
+                ResourceAccess(type="url", path="http://localhost:8080/api", operation="fetch")
+            ],
             risk_score=20,
         )
         violations = validator._check_resource_policies(action)
@@ -247,7 +248,9 @@ class TestResourcePolicies:
             sequence=0,
             tool_call=ToolCall(name="read_file", arguments={}),
             category=IntentCategory.FILE_READ,
-            resources=[ResourceAccess(type="file", path="/home/user/mypasswd.txt", operation="read")],
+            resources=[
+                ResourceAccess(type="file", path="/home/user/mypasswd.txt", operation="read")
+            ],
             risk_score=30,
         )
         violations = validator._check_resource_policies(action)

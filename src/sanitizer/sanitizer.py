@@ -39,10 +39,7 @@ class PromptSanitizer:
             raise FileNotFoundError(f"Prompt rules file not found: {rules_path}")
         raw = json.loads(path.read_text())
         self._rules = [SanitizationRule.model_validate(r) for r in raw]
-        self._compiled = [
-            (rule, re.compile(rule.pattern, re.IGNORECASE))
-            for rule in self._rules
-        ]
+        self._compiled = [(rule, re.compile(rule.pattern, re.IGNORECASE)) for rule in self._rules]
 
     def sanitize(self, input_text: str) -> SanitizeResult:
         detected_patterns: list[str] = []
@@ -60,13 +57,15 @@ class PromptSanitizer:
         injection_detected = len(detected_patterns) > 0
 
         if injection_detected and self.audit_logger:
-            self.audit_logger.log(AuditEvent(
-                event_type=AuditEventType.PROMPT_INJECTION,
-                action="sanitize",
-                result="blocked" if reject_patterns else "success",
-                risk_level=RiskLevel.HIGH,
-                details={"patterns": detected_patterns},
-            ))
+            self.audit_logger.log(
+                AuditEvent(
+                    event_type=AuditEventType.PROMPT_INJECTION,
+                    action="sanitize",
+                    result="blocked" if reject_patterns else "success",
+                    risk_level=RiskLevel.HIGH,
+                    details={"patterns": detected_patterns},
+                )
+            )
 
         if reject_patterns:
             raise PromptInjectionError(reject_patterns)

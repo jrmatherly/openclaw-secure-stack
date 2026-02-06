@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure we run from the project root (where this script lives)
+cd "$(dirname "$0")"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -9,6 +12,10 @@ NC='\033[0m'
 info()  { echo -e "${GREEN}[INFO]${NC} $*"; }
 warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+fail()  { error "$*"; exit 1; }
+
+# Clean up hint on unexpected failure
+trap 'error "Install failed. Check state with: ${COMPOSE_CMD:-docker compose} ps"' ERR
 
 # Detect container runtime: docker or podman
 detect_runtime() {
@@ -72,37 +79,57 @@ generate_token() {
     fi
 }
 
-# Generate CoreDNS zone file from egress allowlist
-generate_zone_file() {
+# Generate CoreDNS Corefile from egress allowlist.
+# Allowed domains are forwarded to Cloudflare; everything else gets NXDOMAIN.
+generate_corefile() {
     local allowlist="config/egress-allowlist.conf"
-    local output="config/allowlist.db"
+    local output="docker/egress/Corefile"
 
     if [ ! -f "$allowlist" ]; then
         error "$allowlist not found"
         exit 1
     fi
 
-    {
-        cat <<'ZONE_HEADER'
-$ORIGIN .
-@  IN SOA ns.local. admin.local. (
-       1      ; serial
-       3600   ; refresh
-       900    ; retry
-       86400  ; expire
-       300    ; minimum
-)
-   IN NS  ns.local.
+    local domain_count=0
 
-ZONE_HEADER
+    {
+        # Per-domain forward blocks for allowed domains
         while IFS= read -r domain || [ -n "$domain" ]; do
             domain=$(echo "$domain" | sed 's/#.*//' | tr -d '[:space:]')
             [ -z "$domain" ] && continue
-            echo "$domain. IN A 0.0.0.0"
+            echo "${domain}. {"
+            echo "    forward . 1.1.1.2 1.0.0.2"
+            echo "    log"
+            echo "    errors"
+            echo "}"
+            echo ""
+            domain_count=$((domain_count + 1))
         done < "$allowlist"
+
+        # Catch-all: block everything else with NXDOMAIN
+        cat <<'CATCHALL'
+# Default: block all non-allowlisted domains
+. {
+    template ANY ANY {
+        rcode NXDOMAIN
+    }
+    log
+    errors
+}
+CATCHALL
     } > "$output"
 
-    info "Generated DNS zone file from $allowlist ($(grep -c 'IN A' "$output") domains)"
+    info "Generated Corefile from $allowlist ($domain_count allowed domains)"
+}
+
+# Derive the Compose project name (matches docker compose logic)
+get_compose_project_name() {
+    # Check explicit COMPOSE_PROJECT_NAME first, then fall back to directory name
+    if [ -n "${COMPOSE_PROJECT_NAME:-}" ]; then
+        echo "$COMPOSE_PROJECT_NAME"
+    else
+        basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g'
+    fi
 }
 
 sed_inplace() {
@@ -117,8 +144,6 @@ sed_inplace() {
 sed_escape_rhs() {
     printf '%s' "$1" | sed 's/[&|/\]/\\&/g'
 }
-
-fail() { error "$*"; exit 1; }
 
 validate_image_hardening() {
     local image="$1"
@@ -146,6 +171,32 @@ validate_image_hardening() {
     info "Image hardening checks passed for $image"
 }
 
+# Read a value from .env by key name
+read_env() {
+    sed -n "s/^${1}=//p" .env
+}
+
+# Wait for a compose service to become healthy
+wait_for_healthy() {
+    local service="$1"
+    local retries=0
+    while [ $retries -lt 30 ]; do
+        # Use container inspect for reliable health status across compose versions
+        local container_id
+        container_id=$($COMPOSE_CMD ps -q "$service" 2>/dev/null || echo "")
+        if [ -n "$container_id" ]; then
+            local health
+            health=$($CONTAINER_RT inspect --format '{{.State.Health.Status}}' "$container_id" 2>/dev/null || echo "")
+            if [ "$health" = "healthy" ]; then
+                return 0
+            fi
+        fi
+        sleep 2
+        retries=$((retries + 1))
+    done
+    return 1
+}
+
 main() {
     info "OpenClaw Secure Stack Installer"
     echo ""
@@ -169,8 +220,8 @@ main() {
         info "Generated .env with random API token"
     fi
 
-    # Generate DNS zone file
-    generate_zone_file
+    # Generate Corefile from egress allowlist
+    generate_corefile
 
     # --- LLM Auth Setup (before starting containers) ---
     echo ""
@@ -184,6 +235,7 @@ main() {
     read -rp "Choose auth method [1/2]: " auth_choice
 
     local onboard_auth_flags=()
+    local onboard_auth_env=()
 
     case "$auth_choice" in
         1)
@@ -193,15 +245,19 @@ main() {
             read -rp "Which provider? [a/b]: " provider_choice
             case "$provider_choice" in
                 a)
-                    read -rp "Enter your OpenAI API key: " api_key
+                    read -rsp "Enter your OpenAI API key: " api_key
+                    echo ""
                     sed_inplace "s|OPENAI_API_KEY=.*|OPENAI_API_KEY=$(sed_escape_rhs "$api_key")|" .env
-                    onboard_auth_flags=(--auth-choice openai-api-key --openai-api-key "$api_key")
+                    onboard_auth_flags=(--auth-choice openai-api-key)
+                    onboard_auth_env=(-e "OPENAI_API_KEY=$api_key")
                     info "Saved OpenAI API key"
                     ;;
                 b)
-                    read -rp "Enter your Anthropic API key: " api_key
+                    read -rsp "Enter your Anthropic API key: " api_key
+                    echo ""
                     sed_inplace "s|ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$(sed_escape_rhs "$api_key")|" .env
-                    onboard_auth_flags=(--auth-choice apiKey --anthropic-api-key "$api_key")
+                    onboard_auth_flags=(--auth-choice apiKey)
+                    onboard_auth_env=(-e "ANTHROPIC_API_KEY=$api_key")
                     info "Saved Anthropic API key"
                     ;;
                 *)
@@ -240,13 +296,18 @@ main() {
 
     # Read token from .env
     local gateway_token
-    gateway_token=$(sed -n 's/^OPENCLAW_TOKEN=//p' .env)
+    gateway_token=$(read_env OPENCLAW_TOKEN)
     local openclaw_image
-    openclaw_image=$(sed -n 's/^OPENCLAW_IMAGE=//p' .env)
+    openclaw_image=$(read_env OPENCLAW_IMAGE)
     openclaw_image="${openclaw_image:-ghcr.io/openclaw/openclaw:latest}"
 
+    # Derive volume name from compose project name
+    local project_name
+    project_name=$(get_compose_project_name)
+    local volume_name="${project_name}_openclaw-data"
+
     # Ensure the openclaw-data volume exists
-    $CONTAINER_RT volume create openclaw-secure-stack_openclaw-data 2>/dev/null || true
+    $CONTAINER_RT volume create "$volume_name" 2>/dev/null || true
 
     # Run onboard inside the openclaw image to configure credentials
     info "Configuring OpenClaw gateway..."
@@ -255,14 +316,15 @@ main() {
         $CONTAINER_RT run --rm -it \
             --user 65534 \
             -e HOME=/home/openclaw \
-            -v openclaw-secure-stack_openclaw-data:/home/openclaw/.openclaw \
+            -e "OPENCLAW_GATEWAY_TOKEN=$gateway_token" \
+            "${onboard_auth_env[@]}" \
+            -v "${volume_name}:/home/openclaw/.openclaw" \
             "$openclaw_image" \
             node dist/index.js onboard \
                 --mode local \
                 --gateway-port 3000 \
                 --gateway-bind lan \
                 --gateway-auth token \
-                --gateway-token "$gateway_token" \
                 --skip-daemon \
                 --skip-channels \
                 --skip-skills \
@@ -274,7 +336,9 @@ main() {
         $CONTAINER_RT run --rm \
             --user 65534 \
             -e HOME=/home/openclaw \
-            -v openclaw-secure-stack_openclaw-data:/home/openclaw/.openclaw \
+            -e "OPENCLAW_GATEWAY_TOKEN=$gateway_token" \
+            "${onboard_auth_env[@]}" \
+            -v "${volume_name}:/home/openclaw/.openclaw" \
             "$openclaw_image" \
             node dist/index.js onboard \
                 --non-interactive \
@@ -283,7 +347,6 @@ main() {
                 --gateway-port 3000 \
                 --gateway-bind lan \
                 --gateway-auth token \
-                --gateway-token "$gateway_token" \
                 --skip-daemon \
                 --skip-channels \
                 --skip-skills \
@@ -297,7 +360,7 @@ main() {
     $CONTAINER_RT run --rm \
         --user 65534 \
         -e HOME=/home/openclaw \
-        -v openclaw-secure-stack_openclaw-data:/home/openclaw/.openclaw \
+        -v "${volume_name}:/home/openclaw/.openclaw" \
         "$openclaw_image" \
         node -e "
           const fs = require('fs');
@@ -323,31 +386,27 @@ main() {
 
     # Wait for openclaw to be healthy
     info "Waiting for OpenClaw gateway to be ready..."
-    local retries=0
-    while [ $retries -lt 30 ]; do
-        if $COMPOSE_CMD ps openclaw 2>/dev/null | grep -q "(healthy)"; then
-            break
-        fi
-        sleep 2
-        retries=$((retries + 1))
-    done
-
-    if [ $retries -ge 30 ]; then
+    if wait_for_healthy openclaw; then
+        info "OpenClaw gateway is healthy."
+    else
         warn "OpenClaw gateway did not become healthy in time."
         warn "Check logs with: $COMPOSE_CMD logs openclaw"
-    else
-        info "OpenClaw gateway is healthy."
     fi
+
+    # Read PROXY_PORT from .env (fall back to 8080)
+    local proxy_port
+    proxy_port=$(read_env PROXY_PORT)
+    proxy_port="${proxy_port:-8080}"
 
     echo ""
     info "=== OpenClaw Secure Stack is running! ==="
-    info "Proxy:       http://localhost:${PROXY_PORT:-8080}"
-    info "Health:      curl http://localhost:${PROXY_PORT:-8080}/health"
+    info "Proxy:       http://localhost:${proxy_port}"
+    info "Health:      curl http://localhost:${proxy_port}/health"
     info "API token:   stored in .env (OPENCLAW_TOKEN)"
     echo ""
     info "Test with:"
-    info "  curl -X POST http://localhost:${PROXY_PORT:-8080}/v1/chat/completions \\"
-    info "    -H 'Authorization: Bearer $(sed -n "s/^OPENCLAW_TOKEN=//p" .env)' \\"
+    info "  curl -X POST http://localhost:${proxy_port}/v1/chat/completions \\"
+    info "    -H 'Authorization: Bearer $(read_env OPENCLAW_TOKEN)' \\"
     info "    -H 'Content-Type: application/json' \\"
     info "    -d '{\"model\": \"gpt-4o-mini\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}'"
 }

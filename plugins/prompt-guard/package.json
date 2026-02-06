@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "OpenClaw plugin that sanitizes tool results against indirect prompt injection",
   "main": "index.ts",
+  "devDependencies": {
+    "@types/node": "^22.19.9"
+  },
   "openclaw": {
-    "hooks": ["tool_result_persist"]
+    "hooks": [
+      "tool_result_persist"
+    ]
   }
 }

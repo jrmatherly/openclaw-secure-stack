@@ -137,9 +137,7 @@ class TestTokenSigning:
         # Decode, modify, re-encode
         decoded = json.loads(base64.urlsafe_b64decode(payload + "=="))
         decoded["plan_id"] = "different-id"
-        new_payload = base64.urlsafe_b64encode(
-            json.dumps(decoded).encode()
-        ).decode().rstrip("=")
+        new_payload = base64.urlsafe_b64encode(json.dumps(decoded).encode()).decode().rstrip("=")
 
         tampered = f"{new_payload}.{sig}"
         result = store.verify_token(plan_id, tampered)

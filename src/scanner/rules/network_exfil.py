@@ -43,10 +43,14 @@ class NetworkExfilRule(ASTScanRule):
             if func and func.type == "identifier" and func.text:
                 name = func.text.decode()
                 if name in NETWORK_APIS and not self._is_allowlisted_call(node, source_str):
-                        findings.append(self._make_finding(
-                            func, lines, file_path,
+                    findings.append(
+                        self._make_finding(
+                            func,
+                            lines,
+                            file_path,
                             f"Outbound network call: {name}()",
-                        ))
+                        )
+                    )
 
         # Detect new XMLHttpRequest()
         if node.type == "new_expression":
@@ -54,10 +58,14 @@ class NetworkExfilRule(ASTScanRule):
             if ctor and ctor.type == "identifier" and ctor.text:
                 name = ctor.text.decode()
                 if name in NETWORK_APIS:
-                    findings.append(self._make_finding(
-                        ctor, lines, file_path,
-                        f"Outbound network constructor: new {name}()",
-                    ))
+                    findings.append(
+                        self._make_finding(
+                            ctor,
+                            lines,
+                            file_path,
+                            f"Outbound network constructor: new {name}()",
+                        )
+                    )
 
         # Detect require("http"), require("https"), etc.
         if node.type == "call_expression":
@@ -69,10 +77,14 @@ class NetworkExfilRule(ASTScanRule):
                     if arg.type == "string" and arg.text:
                         val = arg.text.decode().strip("'\"")
                         if val in NETWORK_MODULES:
-                            findings.append(self._make_finding(
-                                arg, lines, file_path,
-                                f"Network module import: {val}",
-                            ))
+                            findings.append(
+                                self._make_finding(
+                                    arg,
+                                    lines,
+                                    file_path,
+                                    f"Network module import: {val}",
+                                )
+                            )
 
         self._walk_children(node, findings, lines, file_path, source_str)
 

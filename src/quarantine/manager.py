@@ -62,25 +62,29 @@ class QuarantineManager:
         )
 
         if self.audit_logger:
-            self.audit_logger.log(AuditEvent(
-                event_type=AuditEventType.SKILL_QUARANTINE,
-                action=f"quarantine:{report.skill_name}",
-                result="success",
-                risk_level=RiskLevel.HIGH,
-                details={"skill_name": report.skill_name, "findings": len(report.findings)},
-            ))
+            self.audit_logger.log(
+                AuditEvent(
+                    event_type=AuditEventType.SKILL_QUARANTINE,
+                    action=f"quarantine:{report.skill_name}",
+                    result="success",
+                    risk_level=RiskLevel.HIGH,
+                    details={"skill_name": report.skill_name, "findings": len(report.findings)},
+                )
+            )
 
     def enforce_quarantine(self, skill_name: str) -> None:
         """Raise QuarantineBlockedError if skill is quarantined."""
         skill = self.db.get_skill(skill_name)
         if skill and skill["status"] == "quarantined":
             if self.audit_logger:
-                self.audit_logger.log(AuditEvent(
-                    event_type=AuditEventType.SKILL_QUARANTINE,
-                    action=f"Blocked execution of quarantined skill: {skill_name}",
-                    result="blocked",
-                    risk_level=RiskLevel.HIGH,
-                ))
+                self.audit_logger.log(
+                    AuditEvent(
+                        event_type=AuditEventType.SKILL_QUARANTINE,
+                        action=f"Blocked execution of quarantined skill: {skill_name}",
+                        result="blocked",
+                        risk_level=RiskLevel.HIGH,
+                    )
+                )
             raise QuarantineBlockedError(skill_name)
 
     def is_quarantined(self, skill_name: str) -> bool:
@@ -90,21 +94,24 @@ class QuarantineManager:
     def force_override(self, skill_name: str, user_id: str, ack: str) -> None:
         now = datetime.now(UTC).isoformat()
         self.db.update_status(
-            skill_name, "overridden",
+            skill_name,
+            "overridden",
             override_user=user_id,
             override_ack=ack,
             override_at=now,
         )
 
         if self.audit_logger:
-            self.audit_logger.log(AuditEvent(
-                event_type=AuditEventType.SKILL_OVERRIDE,
-                action=f"override:{skill_name}",
-                user_id=user_id,
-                result="success",
-                risk_level=RiskLevel.CRITICAL,
-                details={"skill_name": skill_name, "ack": ack},
-            ))
+            self.audit_logger.log(
+                AuditEvent(
+                    event_type=AuditEventType.SKILL_OVERRIDE,
+                    action=f"override:{skill_name}",
+                    user_id=user_id,
+                    result="success",
+                    risk_level=RiskLevel.CRITICAL,
+                    details={"skill_name": skill_name, "ack": ack},
+                )
+            )
 
     def get_quarantined(self) -> list[QuarantinedSkill]:
         quarantined = self.db.list_by_status("quarantined")
@@ -114,16 +121,18 @@ class QuarantineManager:
             raw = json.loads(str(row["findings_json"]))
             findings = [ScanFinding.model_validate(f) for f in raw]
             is_overridden = row["status"] == "overridden"
-            result.append(QuarantinedSkill(
-                name=str(row["name"]),
-                original_path=str(row["path"]),
-                quarantined_at=str(row.get("last_scanned", "")),
-                reason=f"{len(findings)} finding(s) detected",
-                findings=findings,
-                overridden=is_overridden,
-                overridden_by=str(row["override_user"]) if is_overridden else None,
-                overridden_at=str(row["override_at"]) if is_overridden else None,
-            ))
+            result.append(
+                QuarantinedSkill(
+                    name=str(row["name"]),
+                    original_path=str(row["path"]),
+                    quarantined_at=str(row.get("last_scanned", "")),
+                    reason=f"{len(findings)} finding(s) detected",
+                    findings=findings,
+                    overridden=is_overridden,
+                    overridden_by=str(row["override_user"]) if is_overridden else None,
+                    overridden_at=str(row["override_at"]) if is_overridden else None,
+                )
+            )
         return result
 
     def rescan(self, skill_name: str) -> ScanReport:

@@ -36,7 +36,7 @@ def test_detects_function_constructor():
 
 
 def test_ignores_safe_code():
-    source = b'const x = [1,2,3].map(n => n * 2);'
+    source = b"const x = [1,2,3].map(n => n * 2);"
     findings = rule.detect(parse_js(source), source, "test.js")
     assert len(findings) == 0
 

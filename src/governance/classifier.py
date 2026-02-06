@@ -65,9 +65,7 @@ class IntentClassifier:
         # Compile argument patterns
         self._argument_patterns = {}
         for pattern_type, patterns in config["argument_patterns"].items():
-            self._argument_patterns[pattern_type] = [
-                re.compile(p, re.IGNORECASE) for p in patterns
-            ]
+            self._argument_patterns[pattern_type] = [re.compile(p, re.IGNORECASE) for p in patterns]
 
         # Load risk multipliers
         self._risk_multipliers = config["risk_multipliers"]
@@ -108,9 +106,7 @@ class IntentClassifier:
                     # Extract optional ID
                     tool_id = tool.get("id")
 
-                    result.append(
-                        ToolCall(name=name, arguments=arguments, id=tool_id)
-                    )
+                    result.append(ToolCall(name=name, arguments=arguments, id=tool_id))
             except (KeyError, TypeError):
                 # Skip malformed tool entries
                 continue
@@ -138,9 +134,7 @@ class IntentClassifier:
 
         return IntentCategory.UNKNOWN
 
-    def _analyze_arguments(
-        self, arguments: dict[str, Any], path: str = ""
-    ) -> list[IntentSignal]:
+    def _analyze_arguments(self, arguments: dict[str, Any], path: str = "") -> list[IntentSignal]:
         """Analyze arguments for sensitive patterns.
 
         Args:
@@ -203,9 +197,7 @@ class IntentClassifier:
                                 )
                                 break
                     elif isinstance(item, dict):
-                        signals.extend(
-                            self._analyze_arguments(item, f"{current_path}[{i}]")
-                        )
+                        signals.extend(self._analyze_arguments(item, f"{current_path}[{i}]"))
 
         return signals
 

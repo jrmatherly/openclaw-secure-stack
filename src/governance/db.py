@@ -131,9 +131,7 @@ class GovernanceDB:
         self._conn.commit()
         return cursor
 
-    def execute_returning(
-        self, sql: str, params: tuple[Any, ...] = ()
-    ) -> dict[str, Any] | None:
+    def execute_returning(self, sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
         """Execute a SQL statement with RETURNING clause and fetch the result.
 
         This method fetches the RETURNING result before committing, which is

@@ -19,7 +19,12 @@ from src.scanner.scanner import SkillScanner, load_pins_from_file, load_rules_fr
 @click.option("--audit-log", default=None, help="Audit log file path.")
 @click.pass_context
 def cli(
-    ctx: click.Context, rules: str, pins: str, db: str, quarantine_dir: str, audit_log: str | None,
+    ctx: click.Context,
+    rules: str,
+    pins: str,
+    db: str,
+    quarantine_dir: str,
+    audit_log: str | None,
 ) -> None:
     """OpenClaw skill scanner and quarantine CLI."""
     ctx.ensure_object(dict)

@@ -77,7 +77,8 @@ async def test_auth_failure_logged() -> None:
         await client.get("/", headers={"Authorization": "Bearer wrong"})
 
     failure_calls = [
-        c for c in mock_logger.log.call_args_list
+        c
+        for c in mock_logger.log.call_args_list
         if c[0][0].event_type == AuditEventType.AUTH_FAILURE
     ]
     assert len(failure_calls) == 1
@@ -91,7 +92,8 @@ async def test_auth_success_logged() -> None:
         await client.get("/", headers={"Authorization": f"Bearer {TOKEN}"})
 
     success_calls = [
-        c for c in mock_logger.log.call_args_list
+        c
+        for c in mock_logger.log.call_args_list
         if c[0][0].event_type == AuditEventType.AUTH_SUCCESS
     ]
     assert len(success_calls) == 1
